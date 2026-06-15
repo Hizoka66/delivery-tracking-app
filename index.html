@@ -19,11 +19,16 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Prompt', sans-serif; background-color: #1e293b; user-select: none; -webkit-user-select: none; }
-        @keyframes scan { 0%, 100% { top: 0; } 50% { top: 100%; } }
-        .animate-scan { animation: scan 1.5s ease-in-out infinite; }
+        
         .hide { display: none !important; }
-        #reader { width: 100%; border-radius: 0.5rem; overflow: hidden; border: none; }
-        #reader video { object-fit: cover; border-radius: 0.5rem; }
+        
+        /* ปรับแต่ง UI ของตัวสแกนกล้องใหม่ให้เนียนไปกับแอป */
+        #reader { width: 100%; overflow: hidden; border: none; }
+        #reader video { object-fit: cover; border-radius: 1rem; }
+        
+        /* ซ่อน UI ของ HTML5 QR Code พื้นฐานที่ไม่จำเป็น */
+        #reader__dashboard_section_csr span { color: transparent !important; }
+        #reader__dashboard_section_swaplink { display: none !important; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center">
@@ -85,14 +90,30 @@
                 </button>
             </div>
 
-            <!-- State: Scanning Camera -->
-            <div id="driver-scanning-state" class="absolute inset-0 bg-slate-900 z-30 flex flex-col items-center justify-center hide p-4">
-                <h3 class="text-white mb-4 font-bold text-lg flex items-center gap-2"><i data-lucide="camera" class="w-5 h-5"></i> สแกน QR Code</h3>
-                <div class="w-full max-w-sm bg-black rounded-xl overflow-hidden shadow-2xl relative border-2 border-slate-700">
-                    <div id="reader" class="w-full h-80"></div>
-                    <div class="w-full h-0.5 bg-green-500 shadow-[0_0_15px_3px_#22c55e] absolute z-20 animate-scan"></div>
+            <!-- State: Scanning Camera (Full Screen Modal Style) -->
+            <div id="driver-scanning-state" class="fixed inset-0 bg-[#0f172a] z-50 flex flex-col hide">
+                <!-- Header (แถมปุ่มปิด) -->
+                <div class="flex justify-between items-center p-4 pt-6 text-white border-b border-slate-800">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="camera" class="w-6 h-6 text-blue-400"></i>
+                        <h2 class="text-lg font-bold">สแกน QR Code เพื่อเริ่มงาน</h2>
+                    </div>
+                    <button onclick="cancelScan()" class="p-2 bg-slate-800 rounded-full hover:bg-slate-700 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
                 </div>
-                <button onclick="cancelScan()" class="mt-8 px-8 py-3 bg-red-500 hover:bg-red-600 text-white rounded-full font-bold shadow-lg transition-transform active:scale-95">ยกเลิกกล้อง</button>
+                
+                <!-- Camera Viewfinder -->
+                <div class="flex-grow flex flex-col items-center justify-center p-4 relative">
+                    <div class="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl relative border-4 border-slate-800">
+                        <div id="reader" class="w-full min-h-[300px] bg-black"></div>
+                    </div>
+                    
+                    <div class="mt-8 text-center">
+                        <p class="text-blue-400 font-bold text-lg mb-1">จุดส่งสินค้า</p>
+                        <p class="text-slate-400 text-sm">ให้ QR Code อยู่ในกรอบสี่เหลี่ยม</p>
+                    </div>
+                </div>
             </div>
 
             <!-- State: Loaded Route -->
@@ -212,7 +233,6 @@
         // ==========================================
         // 1. CONFIGURATION & STATE
         // ==========================================
-        // ใช้ URL ของ Google Apps Script ที่ Deploy ใหม่
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyPb09gXXhWwbSpHZk07A53l5Dow2-M5iNcoIsN6wPK4P8hrFxpiLSWjaYYJLvdLFES/exec";
         
         let currentRole = localStorage.getItem('deliveryAppRole');
@@ -222,7 +242,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             updateAppView();
-            // ใส่ข้อความจำลองเริ่มต้นเพื่อให้ทดสอบง่าย
             document.getElementById("manual-scan-input").value = "โรงงาน IU Plant$1200374692$บางปู$บริษัท สยามซิตะ จำกัด$4157086720$บริษัท ไทย ออโต้ คอนเวอชั่น$4153366019$บริษัท อาซาฮี เทค อลูมิเนียม$4152121206$4152121207$4152121208";
         });
 
@@ -315,6 +334,7 @@
             }
         }
 
+        // เริ่มต้นกล้อง
         function startScanner() {
             document.getElementById('driver-empty-state').classList.add('hide');
             document.getElementById('driver-scanning-state').classList.remove('hide');
@@ -322,13 +342,21 @@
 
             if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
             
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, 
+            // ตั้งค่ากล้อง: ใช้กล้องหลัง และเปิด qrbox (กรอบสี่เหลี่ยมใสตรงกลาง)
+            const config = { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            };
+            
+            html5QrCode.start({ facingMode: "environment" }, config, 
                 async (decodedText) => {
+                    // เมื่อสแกนติด
                     await html5QrCode.stop();
                     processScanData(decodedText);
                 }, undefined
             ).catch(err => {
-                showDriverError("ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตสิทธิ์การเข้าถึงกล้อง");
+                showDriverError("ไม่สามารถเปิดกล้องได้ กรุณาตรวจสอบการอนุญาตสิทธิ์การเข้าถึงกล้องบนมือถือ");
             });
         }
 
