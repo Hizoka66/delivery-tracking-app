@@ -185,10 +185,26 @@
     <!-- JavaScript Logic -->
     <script>
         // ==========================================
-        // 0. PWA Setup
+        // 0. PWA Setup & Cache Buster
         // ==========================================
         const manifestData = { name: "Delivery Tracking", short_name: "Delivery", display: "standalone", background_color: "#1e293b", theme_color: "#1e293b" };
         document.getElementById('manifest-link').href = URL.createObjectURL(new Blob([JSON.stringify(manifestData)], {type: 'application/manifest+json'}));
+
+        // ฝัง Service Worker ที่มีคำสั่งลบแคชเก่าทิ้งเมื่อมีการอัปเดต
+        const swCode = `
+            self.addEventListener('install', (e) => { self.skipWaiting(); });
+            self.addEventListener('activate', (e) => { 
+                e.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))));
+                e.waitUntil(clients.claim()); 
+            });
+            self.addEventListener('fetch', (e) => { 
+                e.respondWith(fetch(e.request).catch(() => new Response('Offline'))); 
+            });
+        `;
+        const swBlob = new Blob([swCode], {type: 'application/javascript'});
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register(URL.createObjectURL(swBlob));
+        }
 
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -279,12 +295,15 @@
 
                 routeData.stops.forEach((stop, index) => {
                     const isDone = stop.status === 'completed';
+                    
+                    // ป้องกันค่า undefined ให้เป็นชื่อลูกค้าให้ถูกต้องเสมอ
+                    const displayCustomerName = stop.customerName || stop.name || "ไม่ทราบชื่อลูกค้า";
+                    
                     let statusClasses = isDone ? 'border-green-500 opacity-60 bg-slate-50' : 'border-blue-500 bg-white ring-1 ring-blue-200 shadow-md';
                     let numClasses = isDone ? 'bg-green-500 text-white' : 'bg-blue-600 text-white shadow-md';
                     
                     let invBadges = stop.invoices.map(inv => `<span class="bg-slate-100 text-slate-700 px-2 py-1 rounded font-mono text-xs border border-slate-200">${inv}</span>`).join('');
 
-                    // แก้ไขจุดที่กดยืนยันไม่ได้: เปลี่ยนวิธีเรียกฟังก์ชันให้ปลอดภัยขึ้น (ส่ง index เข้าไปแทนชื่อ)
                     let btnHtml = isDone ? '' : `
                         <div class="mt-4 pt-3 border-t border-slate-100 relative z-10">
                             <button id="btn-confirm-${index}" onclick="confirmDelivery(${index}, this)" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-95 cursor-pointer">
@@ -298,7 +317,7 @@
                                 <div class="flex items-start gap-3 mb-2">
                                     <div class="w-7 h-7 rounded-full flex shrink-0 items-center justify-center text-xs font-bold ${numClasses}">${index + 1}</div>
                                     <div class="flex-grow">
-                                        <h3 class="font-bold text-slate-800 leading-tight">${stop.customerName}</h3>
+                                        <h3 class="font-bold text-slate-800 leading-tight">${displayCustomerName}</h3>
                                         <div class="flex flex-wrap gap-1 mt-2">${invBadges}</div>
                                     </div>
                                     ${isDone ? '<i data-lucide="check-circle-2" class="text-green-500 w-6 h-6 shrink-0"></i>' : ''}
@@ -314,7 +333,6 @@
             }
         }
 
-        // เริ่มต้นกล้อง
         function startScanner() {
             document.getElementById('driver-empty-state').classList.add('hide');
             document.getElementById('driver-scanning-state').classList.remove('hide');
@@ -346,7 +364,6 @@
             }
         }
 
-        // แปลงข้อความที่สแกนเป็นก้อนข้อมูลเพื่อส่งให้ GAS
         async function processScanData(rawText) {
             if (!rawText || !rawText.includes('$')) {
                 showDriverError("รูปแบบ QR Code ไม่ถูกต้อง (ไม่พบเครื่องหมาย $)");
@@ -379,7 +396,8 @@
                 
                 if (!isOnlyNumbers) {
                     if (currentCustomer) parsedData.customers.push(currentCustomer);
-                    currentCustomer = { name: token, invoices: [], status: 'pending' };
+                    // เก็บเผื่อทั้ง 2 แบบ ป้องกันบัค undefined
+                    currentCustomer = { name: token, customerName: token, invoices: [], status: 'pending' };
                 } else {
                     if (currentCustomer) currentCustomer.invoices.push(token);
                 }
@@ -405,7 +423,6 @@
             } 
         }
 
-        // ดึงข้อมูล Route กลับมาจาก Server
         async function fetchRouteData(docNo) {
             try {
                 const response = await fetch(WEB_APP_URL, {
@@ -430,10 +447,9 @@
             }
         }
 
-        // ปรับปรุงฟังก์ชันยืนยัน โดยดึงข้อมูลตามตำแหน่ง Array (Index)
         async function confirmDelivery(index, btnElement) {
             const stopData = routeData.stops[index];
-            const customerName = stopData.customerName;
+            const customerName = stopData.customerName || stopData.name || "ไม่ทราบชื่อลูกค้า";
 
             if(!confirm(`ยืนยันการส่งมอบสินค้าให้ ${customerName} สำเร็จใช่หรือไม่?`)) return;
 
@@ -442,7 +458,6 @@
             btnElement.disabled = true;
             lucide.createIcons();
 
-            // ล็อคหน้าจอไม่ให้กดเบิ้ล
             const container = document.getElementById('app-container');
             container.style.opacity = '0.7';
             container.style.pointerEvents = 'none';
@@ -482,7 +497,6 @@
                 btnElement.innerHTML = originalBtnHtml;
                 btnElement.disabled = false;
             } finally {
-                // ปลดล็อคหน้าจอ
                 container.style.opacity = '1';
                 container.style.pointerEvents = 'auto';
                 lucide.createIcons();
