@@ -15,6 +15,9 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+    <!-- HTML5 QRCode Scanner -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Prompt', sans-serif; background-color: #1e293b; }
@@ -23,6 +26,11 @@
         .animate-slideUp { animation: slideUp 0.3s ease-out; }
         .animate-scan { animation: scan 1.5s ease-in-out infinite; }
         .hide { display: none !important; }
+
+        /* ปรับแต่ง UI ของตัวสแกนกล้อง */
+        #reader { width: 100%; background: white; border-radius: 0.5rem; overflow: hidden; }
+        #reader button { background-color: #2563eb; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-family: 'Prompt', sans-serif; cursor: pointer; border: none; margin: 5px; }
+        #reader a { display: none; } /* ซ่อนลิ้งค์เครดิต */
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center">
@@ -74,18 +82,19 @@
                 <h2 class="text-xl font-bold text-slate-800 mb-2">ยังไม่มีแผนการเดินรถ</h2>
                 <p class="text-slate-500 mb-4">สแกน QR Code บนใบนำส่งเพื่อดึงข้อมูล</p>
                 <p id="driver-error-msg" class="text-red-500 font-bold mb-4 bg-red-100 px-4 py-2 rounded-lg text-sm hide"></p>
-                <button onclick="handleScanQR()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 flex items-center justify-center gap-2">
+                <button id="btn-start-scan" onclick="startScanner()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 flex items-center justify-center gap-2">
                     <i data-lucide="scan" class="w-6 h-6"></i> เปิดกล้องสแกน QR Code
                 </button>
             </div>
 
-            <!-- Screen: Scanning -->
-            <div id="driver-scanning-state" class="absolute inset-0 bg-black z-30 flex flex-col items-center justify-center hide">
-                <h3 class="text-white mb-6 font-bold text-lg">หันกล้องไปที่ QR Code</h3>
-                <div class="relative w-72 h-72 rounded-lg overflow-hidden flex items-center justify-center bg-[#1a1a1a]">
-                    <div class="w-full h-0.5 bg-red-500 shadow-[0_0_15px_3px_red] absolute z-20 animate-scan"></div>
+            <!-- Screen: Scanning (ใช้งานกล้องจริง) -->
+            <div id="driver-scanning-state" class="absolute inset-0 bg-slate-900 z-30 flex flex-col items-center justify-center hide p-4">
+                <h3 class="text-white mb-4 font-bold text-lg">สแกน QR Code เพื่อเริ่มงาน</h3>
+                <!-- พื้นที่สำหรับกล้อง -->
+                <div class="w-full max-w-sm bg-white rounded-xl overflow-hidden shadow-2xl p-2">
+                    <div id="reader"></div>
                 </div>
-                <button onclick="cancelScan()" class="mt-8 px-6 py-2 bg-slate-800 text-white rounded-full">ยกเลิก</button>
+                <button onclick="cancelScan()" class="mt-6 px-8 py-3 bg-red-500 text-white rounded-full font-bold shadow-lg">ยกเลิกกล้อง</button>
             </div>
 
             <!-- Screen: Route Data Loaded -->
@@ -136,7 +145,7 @@
                         <input type="text" id="customer-tracking-input" value="4153366019" class="w-full p-4 pl-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-lg font-mono font-bold" placeholder="เลขที่ Tracking...">
                         <i data-lucide="package" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6"></i>
                     </div>
-                    <button onclick="searchTracking()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 text-lg">
+                    <button id="btn-search-tracking" onclick="searchTracking()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 text-lg transition-colors">
                         <i data-lucide="search" class="w-6 h-6"></i> ตรวจสอบสถานะ
                     </button>
                 </div>
@@ -204,6 +213,7 @@
         let routeData = null;
         let selectedStopForModal = null;
         let mapInstance = null;
+        let html5QrcodeScanner = null; // ตัวแปรสำหรับกล้อง
 
         const fleetData = [
             { plate: '70-6561', driver: 'ปฏิวัติ ผ่องศรี', status: 'moving', lat: 13.6268, lng: 100.7226 },
@@ -230,6 +240,9 @@
             if (confirm("คุณต้องการออกจากระบบหรือไม่?")) {
                 currentRole = null;
                 localStorage.removeItem('deliveryAppRole');
+                if(html5QrcodeScanner) {
+                    html5QrcodeScanner.clear().catch(e => console.error(e));
+                }
                 updateAppView();
             }
         }
@@ -247,7 +260,7 @@
                 container.classList.replace('max-w-md', 'max-w-6xl');
                 document.getElementById('view-admin').classList.remove('hide');
                 document.getElementById('view-admin').classList.add('flex');
-                setTimeout(initMap, 500); // Initialize map after container is visible
+                setTimeout(initMap, 500);
             } else {
                 container.classList.replace('max-w-6xl', 'max-w-md');
                 if (currentRole === 'driver') {
@@ -266,7 +279,7 @@
         }
 
         // ==========================================
-        // 3. DRIVER LOGIC
+        // 3. DRIVER LOGIC (ใช้งานกล้องจริง)
         // ==========================================
         function renderDriverState() {
             document.getElementById('driver-empty-state').classList.add('hide');
@@ -325,18 +338,57 @@
             }
         }
 
-        async function handleScanQR() {
+        // เริ่มต้นเปิดกล้อง
+        function startScanner() {
             document.getElementById('driver-empty-state').classList.add('hide');
             document.getElementById('driver-scanning-state').classList.remove('hide');
             document.getElementById('driver-error-msg').classList.add('hide');
 
-            // ใช้เลขเอกสารจำลอง หรือใช้ Scanner จริงในอนาคต
-            const scannedDocNo = "1200374692";
+            // ใช้ Html5QrcodeScanner
+            html5QrcodeScanner = new Html5QrcodeScanner(
+                "reader",
+                { fps: 10, qrbox: {width: 250, height: 250} },
+                false // ไม่ต้องโชว์ Log ใน Console
+            );
+            
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        }
+
+        // เมื่อกล้องอ่าน QR Code/Barcode สำเร็จ
+        async function onScanSuccess(decodedText, decodedResult) {
+            // ปิดกล้องทันทีที่อ่านได้
+            html5QrcodeScanner.clear().catch(error => console.error("Failed to clear scanner.", error));
+            document.getElementById('driver-scanning-state').classList.add('hide');
+            
+            // นำ Text ที่ได้ (Doc No) ไปดึงข้อมูลจาก Database
+            fetchRouteData(decodedText);
+        }
+
+        function onScanFailure(error) {
+            // ไม่ต้องทำอะไร ปล่อยให้มันสแกนต่อไปจนกว่าจะเจอ
+        }
+
+        // กรณีกดปุ่มยกเลิกกล้อง
+        function cancelScan() {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear().catch(error => console.error("Failed to clear scanner.", error));
+            }
+            renderDriverState();
+        }
+
+        // ดึงข้อมูลการจัดส่งจาก Apps Script
+        async function fetchRouteData(docNo) {
+            const errEl = document.getElementById('driver-error-msg');
+            errEl.innerText = "กำลังดึงข้อมูล...";
+            errEl.classList.remove('hide');
+            errEl.classList.replace('bg-red-100', 'bg-blue-100');
+            errEl.classList.replace('text-red-500', 'text-blue-600');
+            document.getElementById('driver-empty-state').classList.remove('hide');
 
             try {
                 const response = await fetch(WEB_APP_URL, {
                     method: "POST", mode: "cors", headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ action: "getRouteData", docNo: scannedDocNo })
+                    body: JSON.stringify({ action: "getRouteData", docNo: docNo.trim() })
                 });
                 const result = await response.json();
                 
@@ -351,16 +403,14 @@
             }
         }
 
-        function cancelScan() {
-            renderDriverState();
-        }
-
         function showDriverError(msg) {
             document.getElementById('driver-scanning-state').classList.add('hide');
             document.getElementById('driver-empty-state').classList.remove('hide');
             const errEl = document.getElementById('driver-error-msg');
             errEl.innerText = msg;
             errEl.classList.remove('hide');
+            errEl.classList.replace('bg-blue-100', 'bg-red-100');
+            errEl.classList.replace('text-blue-600', 'text-red-500');
         }
 
         function openModal(stopId) {
@@ -426,7 +476,7 @@
         }
 
         // ==========================================
-        // 4. CUSTOMER LOGIC
+        // 4. CUSTOMER LOGIC (ยิง API ขอข้อมูลจริง)
         // ==========================================
         function backToCustomerSearch() {
             document.getElementById('customer-search-state').classList.remove('hide');
@@ -437,43 +487,62 @@
             const input = document.getElementById('customer-tracking-input').value.trim();
             if(!input) { alert("กรุณากรอก Tracking"); return; }
             
-            // หมายเหตุ: ในระบบจริง ควรยิง API fetch หา tracking ตรงๆ แต่เพื่อความรวดเร็วในตัวอย่างนี้ เราจะใช้ routeData ที่มีในเครื่อง
-            // หากไม่มีข้อมูล ให้จำลองดึงจาก API ก่อน
-            if(!routeData) {
-               alert("ระบบกำลังดึงข้อมูล... กรุณาลองใหม่ในภายหลัง (ใช้สำหรับการ Test ให้เปิดฝั่งคนขับสแกนงานให้สำเร็จก่อน)");
-               return;
+            const btn = document.getElementById('btn-search-tracking');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = 'กำลังตรวจสอบข้อมูล...';
+            btn.disabled = true;
+
+            try {
+                // เรียก API ตรงไปที่ GAS โดยระบุ action: 'trackCustomer'
+                const response = await fetch(WEB_APP_URL, {
+                    method: "POST", mode: "cors", headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({ action: "trackCustomer", trackingNo: input })
+                });
+                const result = await response.json();
+                
+                if(result.status === "success") {
+                    renderCustomerResult(result.data);
+                } else {
+                    alert("ไม่พบข้อมูล: " + (result.message || "กรุณาตรวจสอบหมายเลข Tracking อีกครั้ง"));
+                }
+            } catch (error) {
+                alert("การเชื่อมต่อฐานข้อมูลมีปัญหา กรุณาลองใหม่อีกครั้ง");
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+                lucide.createIcons();
             }
+        }
 
-            const myStop = routeData.stops.find(s => s.trackingNo === input);
-            if(!myStop) { alert("ไม่พบข้อมูล Tracking นี้"); return; }
+        // ฟังก์ชันวาด UI หลังจากลูกค้าได้ข้อมูลจริง
+        function renderCustomerResult(data) {
+            document.getElementById('cus-track-no').innerText = "INV: " + data.destination.trackingNo;
+            document.getElementById('cus-distance').innerText = data.destination.distance && data.destination.distance !== '-' ? data.destination.distance.split(' ')[0] : '-';
+            document.getElementById('cus-eta').innerText = data.destination.eta && data.destination.eta !== '-' ? data.destination.eta.split(' ')[0] : '-';
+            document.getElementById('cus-driver-name').innerText = data.driver.name;
+            document.getElementById('cus-driver-car').innerText = data.driver.vehicleType;
 
-            const originStop = routeData.stops[0];
-
-            document.getElementById('cus-track-no').innerText = "INV: " + myStop.trackingNo;
-            document.getElementById('cus-distance').innerText = "8.2"; // Mock
-            document.getElementById('cus-eta').innerText = "15"; // Mock
-            document.getElementById('cus-driver-name').innerText = routeData.driver.name;
-            document.getElementById('cus-driver-car').innerText = routeData.driver.vehicleType;
+            const isCompleted = data.destination.status === 'completed';
 
             let html = `
                 <!-- ต้นทาง -->
                 <div class="relative pl-6">
                     <div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full flex items-center justify-center bg-gray-800 ring-4 ring-gray-100"></div>
                     <div>
-                        <div class="flex justify-between items-start"><p class="text-sm font-semibold text-gray-800">รับสินค้าต้นทาง: ${originStop.title}</p></div>
+                        <div class="flex justify-between items-start"><p class="text-sm font-semibold text-gray-800">รับสินค้าต้นทาง: ${data.origin.title}</p></div>
                         <p class="text-xs text-green-600 mt-1 flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3 h-3"></i> รถบรรทุกออกเดินทางแล้ว</p>
                     </div>
                 </div>
                 <!-- ปลายทางเรา -->
                 <div class="relative pl-6">
-                    <div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full flex items-center justify-center ${myStop.status === 'completed' ? 'bg-green-500 ring-4 ring-green-100' : 'bg-gray-200 ring-4 ring-white border-2 border-gray-400'}">
+                    <div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full flex items-center justify-center ${isCompleted ? 'bg-green-500 ring-4 ring-green-100' : 'bg-gray-200 ring-4 ring-white border-2 border-gray-400'}">
                     </div>
                     <div>
                         <div class="flex justify-between items-start">
-                            <p class="text-sm font-bold ${myStop.status === 'completed' ? 'text-green-600' : 'text-gray-800'}">ปลายทาง: ${myStop.title}</p>
-                            ${myStop.status === 'completed' ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold">จัดส่งสำเร็จ</span>' : ''}
+                            <p class="text-sm font-bold ${isCompleted ? 'text-green-600' : 'text-gray-800'}">ปลายทาง: ${data.destination.title}</p>
+                            ${isCompleted ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold">จัดส่งสำเร็จ</span>' : ''}
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">${myStop.address}</p>
+                        <p class="text-xs text-gray-500 mt-1">${data.destination.address}</p>
                     </div>
                 </div>
             `;
