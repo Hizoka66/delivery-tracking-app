@@ -2,9 +2,20 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
+    <!-- ตั้งค่า Viewport ให้เหมือนแอป (ห้ามซูม) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Delivery Tracking System</title>
     
+    <!-- Meta Tags สำหรับทำให้เป็น App บนมือถือ -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1e293b">
+    
+    <title>Delivery Tracking App</title>
+    
+    <!-- PWA Manifest (จะถูกสร้างด้วย JS ด้านล่างเพื่อให้จบในไฟล์เดียว) -->
+    <link id="manifest-link" rel="manifest" href="">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2769/2769339.png">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -15,22 +26,21 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- HTML5 QRCode Scanner -->
+    <!-- HTML5 QRCode -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Prompt', sans-serif; background-color: #1e293b; }
+        body { font-family: 'Prompt', sans-serif; background-color: #1e293b; user-select: none; -webkit-user-select: none; }
         @keyframes scan { 0%, 100% { top: 0; } 50% { top: 100%; } }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .animate-slideUp { animation: slideUp 0.3s ease-out; }
         .animate-scan { animation: scan 1.5s ease-in-out infinite; }
         .hide { display: none !important; }
 
-        /* ปรับแต่ง UI ของตัวสแกนกล้อง */
-        #reader { width: 100%; background: white; border-radius: 0.5rem; overflow: hidden; }
-        #reader button { background-color: #2563eb; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-family: 'Prompt', sans-serif; cursor: pointer; border: none; margin: 5px; }
-        #reader a { display: none; } /* ซ่อนลิ้งค์เครดิต */
+        /* ปรับแต่ง UI ของตัวสแกนกล้องใหม่ให้เนียนไปกับแอป */
+        #reader { width: 100%; border-radius: 0.5rem; overflow: hidden; border: none; }
+        #reader video { object-fit: cover; border-radius: 0.5rem; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center">
@@ -40,7 +50,13 @@
         
         <!-- ==================== VIEW 0: LOGIN ==================== -->
         <div id="view-login" class="flex flex-col h-full bg-slate-100 items-center justify-center p-6 hide">
-            <div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm text-center">
+            <div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm text-center relative">
+                
+                <!-- ปุ่มติดตั้ง App (PWA) จะแสดงเมื่อเบราว์เซอร์รองรับ -->
+                <button id="install-btn" onclick="installApp()" class="absolute -top-4 -right-4 bg-yellow-400 text-yellow-900 font-bold px-4 py-2 rounded-full shadow-lg flex items-center gap-1 text-sm hide animate-bounce">
+                    <i data-lucide="download" class="w-4 h-4"></i> ติดตั้งแอปลงเครื่อง
+                </button>
+
                 <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
                     <i data-lucide="truck" class="text-blue-600 w-10 h-10"></i>
                 </div>
@@ -58,7 +74,7 @@
                     </button>
                     <button onclick="handleLogin('admin')" class="w-full p-4 border-2 border-slate-200 hover:border-slate-800 hover:bg-slate-100 rounded-xl flex items-center gap-4 transition-all">
                         <i data-lucide="building-2" class="text-slate-800 w-7 h-7"></i>
-                        <div class="text-left"><p class="font-bold text-slate-800">ผู้ดูแลระบบ (Admin)</p><p class="text-xs text-slate-500">ดูแผนที่รถ, สร้างเอกสาร</p></div>
+                        <div class="text-left"><p class="font-bold text-slate-800">ผู้ดูแลระบบ (Admin)</p><p class="text-xs text-slate-500">ดูแผนที่รถ</p></div>
                     </button>
                 </div>
             </div>
@@ -71,7 +87,7 @@
                     <h1 class="font-bold text-lg flex items-center gap-2"><i data-lucide="truck" class="w-5 h-5"></i> Driver App</h1>
                     <p id="driver-header-name" class="text-xs text-slate-400"></p>
                 </div>
-                <button onclick="handleLogout()" class="text-slate-300 hover:text-white"><i data-lucide="log-out" class="w-5 h-5"></i></button>
+                <button onclick="handleLogout()" class="text-slate-300 hover:text-white p-2"><i data-lucide="log-out" class="w-5 h-5"></i></button>
             </header>
 
             <!-- Screen: Not Scanned -->
@@ -82,30 +98,33 @@
                 <h2 class="text-xl font-bold text-slate-800 mb-2">ยังไม่มีแผนการเดินรถ</h2>
                 <p class="text-slate-500 mb-4">สแกน QR Code บนใบนำส่งเพื่อดึงข้อมูล</p>
                 <p id="driver-error-msg" class="text-red-500 font-bold mb-4 bg-red-100 px-4 py-2 rounded-lg text-sm hide"></p>
-                <button id="btn-start-scan" onclick="startScanner()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 flex items-center justify-center gap-2">
+                <button id="btn-start-scan" onclick="startScanner()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 flex items-center justify-center gap-2 transition-transform active:scale-95">
                     <i data-lucide="scan" class="w-6 h-6"></i> เปิดกล้องสแกน QR Code
                 </button>
             </div>
 
-            <!-- Screen: Scanning (ใช้งานกล้องจริง) -->
+            <!-- Screen: Scanning (ใช้งานกล้องจริงแบบ Custom) -->
             <div id="driver-scanning-state" class="absolute inset-0 bg-slate-900 z-30 flex flex-col items-center justify-center hide p-4">
-                <h3 class="text-white mb-4 font-bold text-lg">สแกน QR Code เพื่อเริ่มงาน</h3>
+                <h3 class="text-white mb-4 font-bold text-lg flex items-center gap-2"><i data-lucide="camera" class="w-5 h-5"></i> หันกล้องไปที่ QR Code</h3>
                 <!-- พื้นที่สำหรับกล้อง -->
-                <div class="w-full max-w-sm bg-white rounded-xl overflow-hidden shadow-2xl p-2">
-                    <div id="reader"></div>
+                <div class="w-full max-w-sm bg-black rounded-xl overflow-hidden shadow-2xl relative border-2 border-slate-700">
+                    <div id="reader" class="w-full h-80"></div>
+                    <!-- เส้นสแกนวิ่งๆ -->
+                    <div class="w-full h-0.5 bg-green-500 shadow-[0_0_15px_3px_#22c55e] absolute z-20 animate-scan"></div>
                 </div>
-                <button onclick="cancelScan()" class="mt-6 px-8 py-3 bg-red-500 text-white rounded-full font-bold shadow-lg">ยกเลิกกล้อง</button>
+                <button onclick="cancelScan()" class="mt-8 px-8 py-3 bg-red-500 hover:bg-red-600 text-white rounded-full font-bold shadow-lg transition-transform active:scale-95">ยกเลิก</button>
             </div>
 
             <!-- Screen: Route Data Loaded -->
             <div id="driver-data-state" class="p-4 flex-grow overflow-y-auto space-y-4 pb-20 hide">
-                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex justify-between items-center">
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex justify-between items-center shadow-sm">
                     <div>
                         <p class="text-xs text-blue-600 font-bold">เอกสารใบนำส่ง</p>
                         <p id="driver-doc-no" class="text-lg font-mono font-bold text-blue-900"></p>
                     </div>
+                    <button onclick="resetDriverJob()" class="p-2 bg-blue-100 text-blue-600 rounded-full"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
                 </div>
-                <p class="font-bold text-slate-700 text-sm ml-1 mt-4">จุดหมายที่ต้องไปส่ง</p>
+                <p class="font-bold text-slate-700 text-sm ml-1 mt-4 flex items-center gap-1"><i data-lucide="map-pin" class="w-4 h-4 text-slate-400"></i> จุดหมายที่ต้องไปส่ง</p>
                 <div id="driver-stops-list" class="space-y-4">
                     <!-- Dynamic Stops will be injected here -->
                 </div>
@@ -122,7 +141,7 @@
                         <p class="text-sm text-blue-600 font-bold mb-1">ส่งมอบให้ลูกค้า:</p>
                         <p id="modal-customer-name" class="font-bold text-slate-800 text-lg"></p>
                     </div>
-                    <button id="btn-confirm-delivery" onclick="confirmDelivery()" class="w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all bg-blue-600 text-white">
+                    <button id="btn-confirm-delivery" onclick="confirmDelivery()" class="w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-transform active:scale-95 bg-blue-600 text-white">
                         <i data-lucide="check-circle-2" class="w-6 h-6"></i> ยืนยันปิดงาน
                     </button>
                 </div>
@@ -132,20 +151,20 @@
         <!-- ==================== VIEW 2: CUSTOMER ==================== -->
         <div id="view-customer" class="flex-col h-full bg-white hide">
             <header class="bg-blue-900 text-white p-4 shadow-md flex items-center justify-between">
-                <h1 class="text-lg font-bold flex items-center gap-2"><i data-lucide="truck" class="w-5 h-5"></i> ระบบติดตามสินค้า</h1>
-                <button onclick="handleLogout()" class="text-blue-200 hover:text-white"><i data-lucide="log-out" class="w-5 h-5"></i></button>
+                <h1 class="text-lg font-bold flex items-center gap-2"><i data-lucide="package-search" class="w-5 h-5"></i> ค้นหาพัสดุ</h1>
+                <button onclick="handleLogout()" class="text-blue-200 hover:text-white p-2"><i data-lucide="log-out" class="w-5 h-5"></i></button>
             </header>
             
             <!-- Search State -->
             <main id="customer-search-state" class="p-6 flex-grow flex flex-col items-center justify-center">
                 <div class="w-full max-w-md">
                     <h2 class="text-2xl font-bold text-gray-800 mb-2 text-center">ติดตามสถานะสินค้า</h2>
-                    <p class="text-gray-500 text-center mb-8">กรอก Tracking เพื่อตรวจสอบ (เช่น 4153366019)</p>
+                    <p class="text-gray-500 text-center mb-8">กรอก Tracking เพื่อตรวจสอบสถานะ</p>
                     <div class="mb-6 relative">
-                        <input type="text" id="customer-tracking-input" value="4153366019" class="w-full p-4 pl-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-lg font-mono font-bold" placeholder="เลขที่ Tracking...">
+                        <input type="text" id="customer-tracking-input" value="4153366019" class="w-full p-4 pl-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-lg font-mono font-bold transition-all" placeholder="เลขที่ Tracking...">
                         <i data-lucide="package" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6"></i>
                     </div>
-                    <button id="btn-search-tracking" onclick="searchTracking()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 text-lg transition-colors">
+                    <button id="btn-search-tracking" onclick="searchTracking()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 text-lg transition-transform active:scale-95">
                         <i data-lucide="search" class="w-6 h-6"></i> ตรวจสอบสถานะ
                     </button>
                 </div>
@@ -154,7 +173,7 @@
             <!-- Tracking Result State -->
             <div id="customer-result-state" class="flex-col h-full bg-gray-50 overflow-hidden hide">
                 <header class="bg-white p-4 shadow-sm flex items-center gap-4 z-10 sticky top-0">
-                    <button onclick="backToCustomerSearch()" class="p-2 bg-gray-100 rounded-full hover:bg-gray-200"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+                    <button onclick="backToCustomerSearch()" class="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
                     <div><h1 id="cus-track-no" class="font-bold text-gray-800 font-mono"></h1></div>
                 </header>
                 <div class="flex-grow overflow-y-auto pb-10">
@@ -182,7 +201,7 @@
         <!-- ==================== VIEW 3: ADMIN ==================== -->
         <div id="view-admin" class="flex-col h-full bg-slate-50 border-x border-slate-200 hide w-full max-w-6xl">
             <header class="bg-slate-800 text-white p-4 flex items-center justify-between">
-                <div class="flex items-center gap-2"><i data-lucide="building-2" class="w-5 h-5"></i><h1 class="font-bold text-lg">Admin Center</h1></div>
+                <div class="flex items-center gap-2"><i data-lucide="layout-dashboard" class="w-5 h-5"></i><h1 class="font-bold text-lg">Admin Center</h1></div>
                 <div class="flex gap-4">
                     <button onclick="handleLogout()" class="text-slate-400 hover:text-white p-2 flex items-center gap-2"><i data-lucide="log-out" class="w-5 h-5"></i> ออกจากระบบ</button>
                 </div>
@@ -191,8 +210,8 @@
                 <div class="flex-grow bg-slate-200 relative overflow-hidden" id="real-map-container">
                     <!-- Map renders here -->
                 </div>
-                <div class="w-80 bg-white border-l border-slate-200 flex flex-col h-full z-10 sm:flex hidden">
-                    <div class="p-4 border-b border-slate-100 bg-white"><h2 class="font-bold text-slate-800">สถานะรถบรรทุก</h2></div>
+                <div class="w-80 bg-white border-l border-slate-200 flex flex-col h-full z-10 sm:flex hidden shadow-[-4px_0_15px_rgba(0,0,0,0.05)]">
+                    <div class="p-4 border-b border-slate-100 bg-white"><h2 class="font-bold text-slate-800">สถานะรถในระบบ (GPS)</h2></div>
                     <div class="flex-grow overflow-y-auto p-2 bg-white" id="admin-fleet-list">
                         <!-- Fleet injected here -->
                     </div>
@@ -205,15 +224,66 @@
     <!-- JavaScript Logic -->
     <script>
         // ==========================================
+        // 0. PWA Setup (ทำให้ Install เป็น App ได้)
+        // ==========================================
+        function setupPWA() {
+            // 1. สร้าง Manifest.json แบบ on-the-fly
+            const manifestData = {
+                name: "Delivery Tracking System",
+                short_name: "DeliveryApp",
+                start_url: window.location.href,
+                display: "standalone",
+                background_color: "#1e293b",
+                theme_color: "#1e293b",
+                icons: [{ src: "https://cdn-icons-png.flaticon.com/512/2769/2769339.png", sizes: "512x512", type: "image/png" }]
+            };
+            const manifestBlob = new Blob([JSON.stringify(manifestData)], {type: 'application/manifest+json'});
+            document.getElementById('manifest-link').href = URL.createObjectURL(manifestBlob);
+
+            // 2. จำลอง Service Worker เพื่อให้ผ่านเกณฑ์ PWA (Installable)
+            const swCode = `
+                self.addEventListener('install', (e) => { self.skipWaiting(); });
+                self.addEventListener('activate', (e) => { e.waitUntil(clients.claim()); });
+                self.addEventListener('fetch', (e) => { e.respondWith(fetch(e.request).catch(() => new Response('Offline'))); });
+            `;
+            const swBlob = new Blob([swCode], {type: 'application/javascript'});
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(err => console.log('SW setup failed', err));
+            }
+        }
+        setupPWA();
+
+        // 3. จัดการปุ่ม Install
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            // แสดงปุ่มติดตั้งในหน้า Login
+            if(!currentRole) document.getElementById('install-btn').classList.remove('hide');
+        });
+
+        function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        document.getElementById('install-btn').classList.add('hide');
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        }
+
+        // ==========================================
         // 1. CONFIGURATION & STATE
         // ==========================================
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyPb09gXXhWwbSpHZk07A53l5Dow2-M5iNcoIsN6wPK4P8hrFxpiLSWjaYYJLvdLFES/exec";
         
         let currentRole = localStorage.getItem('deliveryAppRole');
-        let routeData = null;
+        let routeData = JSON.parse(localStorage.getItem('deliveryRouteData')) || null; // จำงานของคนขับไว้ด้วย
         let selectedStopForModal = null;
         let mapInstance = null;
-        let html5QrcodeScanner = null; // ตัวแปรสำหรับกล้อง
+        let html5QrCode = null; // ตัวแปรสำหรับคลาสกล้องตัวใหม่
 
         const fleetData = [
             { plate: '70-6561', driver: 'ปฏิวัติ ผ่องศรี', status: 'moving', lat: 13.6268, lng: 100.7226 },
@@ -221,7 +291,6 @@
             { plate: 'บท-1671', driver: 'พงษ์นิวัฒน์ สุทธิพันธ์', status: 'moving', lat: 13.5250, lng: 100.6760 },
         ];
 
-        // Initialize App
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             updateAppView();
@@ -240,22 +309,22 @@
             if (confirm("คุณต้องการออกจากระบบหรือไม่?")) {
                 currentRole = null;
                 localStorage.removeItem('deliveryAppRole');
-                if(html5QrcodeScanner) {
-                    html5QrcodeScanner.clear().catch(e => console.error(e));
+                if(html5QrCode && html5QrCode.isScanning) {
+                    html5QrCode.stop().catch(e => console.error(e));
                 }
                 updateAppView();
             }
         }
 
         function updateAppView() {
-            // Hide all views
             document.getElementById('view-login').classList.add('hide');
             document.getElementById('view-driver').classList.add('hide');
             document.getElementById('view-customer').classList.add('hide');
             document.getElementById('view-admin').classList.add('hide');
+            document.getElementById('install-btn').classList.add('hide'); // ซ่อนปุ่ม install ไว้ก่อน
             
-            // Adjust Container size for Admin
             const container = document.getElementById('app-container');
+            
             if(currentRole === 'admin') {
                 container.classList.replace('max-w-md', 'max-w-6xl');
                 document.getElementById('view-admin').classList.remove('hide');
@@ -273,13 +342,14 @@
                     backToCustomerSearch();
                 } else {
                     document.getElementById('view-login').classList.remove('hide');
+                    if (deferredPrompt) document.getElementById('install-btn').classList.remove('hide');
                 }
             }
             lucide.createIcons();
         }
 
         // ==========================================
-        // 3. DRIVER LOGIC (ใช้งานกล้องจริง)
+        // 3. DRIVER LOGIC (ปรับกล้องให้เปิดกล้องหลัง ขอสิทธิ์ครั้งเดียว)
         // ==========================================
         function renderDriverState() {
             document.getElementById('driver-empty-state').classList.add('hide');
@@ -306,7 +376,7 @@
                     if (isCurrent) {
                         btnHtml = `
                         <div class="flex gap-2 pl-8 border-t border-slate-200 pt-3 mt-3">
-                            <button onclick="openModal(${stop.id})" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-1 shadow-sm">
+                            <button onclick="openModal(${stop.id})" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-1 shadow-sm transition-transform active:scale-95">
                                 <i data-lucide="check-circle-2" class="w-4 h-4"></i> อัปเดตสถานะถึงที่หมาย
                             </button>
                         </div>`;
@@ -338,45 +408,46 @@
             }
         }
 
-        // เริ่มต้นเปิดกล้อง
+        // --- ระบบกล้องตัวใหม่ ---
         function startScanner() {
             document.getElementById('driver-empty-state').classList.add('hide');
             document.getElementById('driver-scanning-state').classList.remove('hide');
             document.getElementById('driver-error-msg').classList.add('hide');
 
-            // ใช้ Html5QrcodeScanner
-            html5QrcodeScanner = new Html5QrcodeScanner(
-                "reader",
-                { fps: 10, qrbox: {width: 250, height: 250} },
-                false // ไม่ต้องโชว์ Log ใน Console
-            );
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
             
-            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+            // ตั้งค่าให้ใช้กล้องหลัง (environment) โดยอัตโนมัติ
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, undefined)
+            .catch(err => {
+                console.error("Camera Error: ", err);
+                showDriverError("ไม่สามารถเปิดกล้องได้ กรุณาตรวจสอบสิทธิ์การเข้าถึงกล้อง (Permissions)");
+            });
         }
 
-        // เมื่อกล้องอ่าน QR Code/Barcode สำเร็จ
         async function onScanSuccess(decodedText, decodedResult) {
-            // ปิดกล้องทันทีที่อ่านได้
-            html5QrcodeScanner.clear().catch(error => console.error("Failed to clear scanner.", error));
+            if (html5QrCode && html5QrCode.isScanning) {
+                await html5QrCode.stop();
+            }
             document.getElementById('driver-scanning-state').classList.add('hide');
-            
-            // นำ Text ที่ได้ (Doc No) ไปดึงข้อมูลจาก Database
             fetchRouteData(decodedText);
         }
 
-        function onScanFailure(error) {
-            // ไม่ต้องทำอะไร ปล่อยให้มันสแกนต่อไปจนกว่าจะเจอ
-        }
-
-        // กรณีกดปุ่มยกเลิกกล้อง
         function cancelScan() {
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.clear().catch(error => console.error("Failed to clear scanner.", error));
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => {
+                    renderDriverState();
+                }).catch(err => {
+                    renderDriverState();
+                });
+            } else {
+                renderDriverState();
             }
-            renderDriverState();
         }
 
-        // ดึงข้อมูลการจัดส่งจาก Apps Script
         async function fetchRouteData(docNo) {
             const errEl = document.getElementById('driver-error-msg');
             errEl.innerText = "กำลังดึงข้อมูล...";
@@ -394,6 +465,7 @@
                 
                 if(result.status === "success") {
                     routeData = result.data;
+                    localStorage.setItem('deliveryRouteData', JSON.stringify(routeData)); // จำงานไว้เผื่อแอปปิด
                     renderDriverState();
                 } else {
                     showDriverError(result.message || "ไม่พบข้อมูลในระบบ");
@@ -411,6 +483,14 @@
             errEl.classList.remove('hide');
             errEl.classList.replace('bg-blue-100', 'bg-red-100');
             errEl.classList.replace('text-blue-600', 'text-red-500');
+        }
+
+        function resetDriverJob() {
+            if(confirm('ต้องการยกเลิกงานปัจจุบันและสแกนใบนำส่งใหม่หรือไม่?')) {
+                routeData = null;
+                localStorage.removeItem('deliveryRouteData');
+                renderDriverState();
+            }
         }
 
         function openModal(stopId) {
@@ -444,14 +524,13 @@
                 const result = await response.json();
                 
                 if(result.status === "success") {
-                    // Update Local Data
                     const stopIndex = routeData.stops.findIndex(s => s.id === selectedStopForModal.id);
                     if(stopIndex !== -1) routeData.stops[stopIndex].status = 'completed';
 
-                    // Set Next Stop to In Progress
                     const nextPendingIndex = routeData.stops.findIndex(s => s.status === 'pending');
                     if (nextPendingIndex !== -1) routeData.stops[nextPendingIndex].status = 'in_progress';
 
+                    localStorage.setItem('deliveryRouteData', JSON.stringify(routeData)); // อัปเดตงานในเครื่อง
                     closeModal();
                     renderDriverState();
 
@@ -459,7 +538,8 @@
                     if (allDone) {
                         setTimeout(() => {
                             alert('🎉 จัดส่งสินค้าครบทุกจุดแล้ว!');
-                            routeData = null; // Reset
+                            routeData = null; 
+                            localStorage.removeItem('deliveryRouteData');
                             renderDriverState();
                         }, 500);
                     }
@@ -476,7 +556,7 @@
         }
 
         // ==========================================
-        // 4. CUSTOMER LOGIC (ยิง API ขอข้อมูลจริง)
+        // 4. CUSTOMER LOGIC
         // ==========================================
         function backToCustomerSearch() {
             document.getElementById('customer-search-state').classList.remove('hide');
@@ -489,11 +569,10 @@
             
             const btn = document.getElementById('btn-search-tracking');
             const originalHtml = btn.innerHTML;
-            btn.innerHTML = 'กำลังตรวจสอบข้อมูล...';
+            btn.innerHTML = 'กำลังตรวจสอบ...';
             btn.disabled = true;
 
             try {
-                // เรียก API ตรงไปที่ GAS โดยระบุ action: 'trackCustomer'
                 const response = await fetch(WEB_APP_URL, {
                     method: "POST", mode: "cors", headers: { "Content-Type": "text/plain;charset=utf-8" },
                     body: JSON.stringify({ action: "trackCustomer", trackingNo: input })
@@ -503,10 +582,10 @@
                 if(result.status === "success") {
                     renderCustomerResult(result.data);
                 } else {
-                    alert("ไม่พบข้อมูล: " + (result.message || "กรุณาตรวจสอบหมายเลข Tracking อีกครั้ง"));
+                    alert("ไม่พบข้อมูล: " + (result.message || "ตรวจสอบหมายเลข Tracking อีกครั้ง"));
                 }
             } catch (error) {
-                alert("การเชื่อมต่อฐานข้อมูลมีปัญหา กรุณาลองใหม่อีกครั้ง");
+                alert("การเชื่อมต่อมีปัญหา กรุณาลองใหม่อีกครั้ง");
             } finally {
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
@@ -514,7 +593,6 @@
             }
         }
 
-        // ฟังก์ชันวาด UI หลังจากลูกค้าได้ข้อมูลจริง
         function renderCustomerResult(data) {
             document.getElementById('cus-track-no').innerText = "INV: " + data.destination.trackingNo;
             document.getElementById('cus-distance').innerText = data.destination.distance && data.destination.distance !== '-' ? data.destination.distance.split(' ')[0] : '-';
@@ -525,7 +603,6 @@
             const isCompleted = data.destination.status === 'completed';
 
             let html = `
-                <!-- ต้นทาง -->
                 <div class="relative pl-6">
                     <div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full flex items-center justify-center bg-gray-800 ring-4 ring-gray-100"></div>
                     <div>
@@ -533,7 +610,6 @@
                         <p class="text-xs text-green-600 mt-1 flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3 h-3"></i> รถบรรทุกออกเดินทางแล้ว</p>
                     </div>
                 </div>
-                <!-- ปลายทางเรา -->
                 <div class="relative pl-6">
                     <div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full flex items-center justify-center ${isCompleted ? 'bg-green-500 ring-4 ring-green-100' : 'bg-gray-200 ring-4 ring-white border-2 border-gray-400'}">
                     </div>
@@ -558,7 +634,7 @@
         // 5. ADMIN MAP LOGIC
         // ==========================================
         function initMap() {
-            if(mapInstance) return; // สร้างครั้งเดียวพอ
+            if(mapInstance) return; 
             const container = document.getElementById('real-map-container');
             if(!container || container.clientWidth === 0) return;
 
@@ -591,7 +667,6 @@
                         <span style="font-size: 12px; color: ${color}; font-weight: bold;">${statusText}</span>
                     </div>`);
 
-                // Add to sidebar list
                 fleetList.innerHTML += `
                     <div class="p-3 mb-2 rounded-lg border border-slate-100 bg-slate-50">
                         <div class="flex justify-between items-start mb-1">
