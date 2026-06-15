@@ -19,16 +19,11 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Prompt', sans-serif; background-color: #1e293b; user-select: none; -webkit-user-select: none; }
-        
+        @keyframes scan { 0%, 100% { top: 0; } 50% { top: 100%; } }
+        .animate-scan { animation: scan 1.5s ease-in-out infinite; }
         .hide { display: none !important; }
-        
-        /* ปรับแต่ง UI ของตัวสแกนกล้องใหม่ให้เนียนไปกับแอป */
-        #reader { width: 100%; overflow: hidden; border: none; }
-        #reader video { object-fit: cover; border-radius: 1rem; }
-        
-        /* ซ่อน UI ของ HTML5 QR Code พื้นฐานที่ไม่จำเป็น */
-        #reader__dashboard_section_csr span { color: transparent !important; }
-        #reader__dashboard_section_swaplink { display: none !important; }
+        #reader { width: 100%; border-radius: 0.5rem; overflow: hidden; border: none; }
+        #reader video { object-fit: cover; border-radius: 0.5rem; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center">
@@ -80,7 +75,7 @@
                 <!-- กล่องข้อความสำหรับทดสอบด้วยการแปะข้อความ -->
                 <div class="w-full mb-6">
                     <textarea id="manual-scan-input" class="w-full p-3 border-2 border-slate-200 rounded-xl text-xs text-slate-600 outline-none focus:border-blue-500" rows="4" placeholder="วางข้อความสแกนที่นี่เพื่อทดสอบ..."></textarea>
-                    <button id="btn-test-scan" onclick="processScanData(document.getElementById('manual-scan-input').value)" class="w-full mt-2 bg-slate-800 text-white font-bold py-2 rounded-lg text-sm transition-transform active:scale-95">จำลองการสแกนด้วยข้อความข้างต้น</button>
+                    <button id="btn-test-scan" onclick="processScanData(document.getElementById('manual-scan-input').value)" class="w-full mt-2 bg-slate-800 text-white font-bold py-2 rounded-lg text-sm transition-transform active:scale-95">จำลองการสแกนด้วยข้อความ</button>
                 </div>
 
                 <p id="driver-error-msg" class="text-red-500 font-bold mb-4 bg-red-100 px-4 py-2 rounded-lg text-sm hide"></p>
@@ -90,30 +85,14 @@
                 </button>
             </div>
 
-            <!-- State: Scanning Camera (Full Screen Modal Style) -->
-            <div id="driver-scanning-state" class="fixed inset-0 bg-[#0f172a] z-50 flex flex-col hide">
-                <!-- Header (แถมปุ่มปิด) -->
-                <div class="flex justify-between items-center p-4 pt-6 text-white border-b border-slate-800">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="camera" class="w-6 h-6 text-blue-400"></i>
-                        <h2 class="text-lg font-bold">สแกน QR Code เพื่อเริ่มงาน</h2>
-                    </div>
-                    <button onclick="cancelScan()" class="p-2 bg-slate-800 rounded-full hover:bg-slate-700 transition-colors">
-                        <i data-lucide="x" class="w-5 h-5"></i>
-                    </button>
+            <!-- State: Scanning Camera -->
+            <div id="driver-scanning-state" class="absolute inset-0 bg-slate-900 z-30 flex flex-col items-center justify-center hide p-4">
+                <h3 class="text-white mb-4 font-bold text-lg flex items-center gap-2"><i data-lucide="camera" class="w-5 h-5"></i> สแกน QR Code</h3>
+                <div class="w-full max-w-sm bg-black rounded-xl overflow-hidden shadow-2xl relative border-2 border-slate-700">
+                    <div id="reader" class="w-full h-80"></div>
+                    <div class="w-full h-0.5 bg-green-500 shadow-[0_0_15px_3px_#22c55e] absolute z-20 animate-scan"></div>
                 </div>
-                
-                <!-- Camera Viewfinder -->
-                <div class="flex-grow flex flex-col items-center justify-center p-4 relative">
-                    <div class="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl relative border-4 border-slate-800">
-                        <div id="reader" class="w-full min-h-[300px] bg-black"></div>
-                    </div>
-                    
-                    <div class="mt-8 text-center">
-                        <p class="text-blue-400 font-bold text-lg mb-1">จุดส่งสินค้า</p>
-                        <p class="text-slate-400 text-sm">ให้ QR Code อยู่ในกรอบสี่เหลี่ยม</p>
-                    </div>
-                </div>
+                <button onclick="cancelScan()" class="mt-8 px-8 py-3 bg-red-500 hover:bg-red-600 text-white rounded-full font-bold shadow-lg transition-transform active:scale-95">ยกเลิกกล้อง</button>
             </div>
 
             <!-- State: Loaded Route -->
@@ -292,7 +271,7 @@
 
             if (routeData && routeData.docNo) {
                 document.getElementById('driver-doc-no').innerText = routeData.docNo;
-                document.getElementById('driver-route-name').innerHTML = `<i data-lucide="map" class="inline w-3 h-3 mr-1"></i> สาย: ${routeData.route} (รับจาก: ${routeData.origin})`;
+                document.getElementById('driver-route-name').innerHTML = `<i data-lucide="map" class="inline w-3 h-3 mr-1"></i> เส้นทาง: ${routeData.route} (รับจาก: ${routeData.origin})`;
                 document.getElementById('driver-data-state').classList.remove('hide');
                 
                 const list = document.getElementById('driver-stops-list');
@@ -305,10 +284,11 @@
                     
                     let invBadges = stop.invoices.map(inv => `<span class="bg-slate-100 text-slate-700 px-2 py-1 rounded font-mono text-xs border border-slate-200">${inv}</span>`).join('');
 
+                    // แก้ไขจุดที่กดยืนยันไม่ได้: เปลี่ยนวิธีเรียกฟังก์ชันให้ปลอดภัยขึ้น (ส่ง index เข้าไปแทนชื่อ)
                     let btnHtml = isDone ? '' : `
-                        <div class="mt-4 pt-3 border-t border-slate-100">
-                            <button onclick="confirmDelivery('${stop.customerName}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-95">
-                                <i data-lucide="check-circle-2" class="w-5 h-5"></i> ยืนยันส่งมอบให้ลูกค้านี้
+                        <div class="mt-4 pt-3 border-t border-slate-100 relative z-10">
+                            <button id="btn-confirm-${index}" onclick="confirmDelivery(${index}, this)" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-95 cursor-pointer">
+                                <i data-lucide="check-circle-2" class="w-5 h-5 pointer-events-none"></i> ยืนยันส่งมอบให้ลูกค้านี้
                             </button>
                         </div>`;
 
@@ -342,7 +322,6 @@
 
             if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
             
-            // ตั้งค่ากล้อง: ใช้กล้องหลัง และเปิด qrbox (กรอบสี่เหลี่ยมใสตรงกลาง)
             const config = { 
                 fps: 10, 
                 qrbox: { width: 250, height: 250 },
@@ -351,12 +330,11 @@
             
             html5QrCode.start({ facingMode: "environment" }, config, 
                 async (decodedText) => {
-                    // เมื่อสแกนติด
                     await html5QrCode.stop();
                     processScanData(decodedText);
                 }, undefined
             ).catch(err => {
-                showDriverError("ไม่สามารถเปิดกล้องได้ กรุณาตรวจสอบการอนุญาตสิทธิ์การเข้าถึงกล้องบนมือถือ");
+                showDriverError("ไม่สามารถเปิดกล้องได้ กรุณาตรวจสอบการอนุญาตสิทธิ์การเข้าถึงกล้อง");
             });
         }
 
@@ -378,15 +356,14 @@
             document.getElementById('driver-scanning-state').classList.add('hide');
             
             const btnTest = document.getElementById('btn-test-scan');
-            if(btnTest) { btnTest.innerHTML = 'กำลังสร้างฐานข้อมูล...'; btnTest.disabled = true; }
+            if(btnTest) { btnTest.innerHTML = 'กำลังสร้างฐานข้อมูล... <i data-lucide="loader-2" class="animate-spin w-4 h-4 inline"></i>'; btnTest.disabled = true; lucide.createIcons();}
             
             const errEl = document.getElementById('driver-error-msg');
-            errEl.innerText = "กำลังสร้างฐานข้อมูลงานใน Google Sheets...";
+            errEl.innerHTML = "กำลังสร้างฐานข้อมูลในระบบ...<br><span class='text-xs'>(อาจใช้เวลา 2-3 วินาที)</span>";
             errEl.classList.remove('hide');
             errEl.className = "text-blue-600 font-bold mb-4 bg-blue-100 px-4 py-2 rounded-lg text-sm text-center";
             document.getElementById('driver-empty-state').classList.remove('hide');
 
-            // --- Logic การแยกข้อความ ---
             const parts = rawText.split('$');
             const parsedData = {
                 origin: parts[0],
@@ -409,7 +386,6 @@
             }
             if (currentCustomer) parsedData.customers.push(currentCustomer);
 
-            // ส่งข้อมูลไปบันทึก
             try {
                 const response = await fetch(WEB_APP_URL, {
                     method: "POST", mode: "cors", headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -418,29 +394,58 @@
                 const result = await response.json();
                 
                 if(result.status === "success") {
-                    routeData = {
-                        docNo: parsedData.docNo,
-                        origin: parsedData.origin,
-                        route: parsedData.route,
-                        stops: parsedData.customers
-                    };
+                    fetchRouteData(parsedData.docNo);
+                } else {
+                    showDriverError("การบันทึกล้มเหลว: " + result.message);
+                    if(btnTest) { btnTest.innerHTML = 'จำลองการสแกนด้วยข้อความ'; btnTest.disabled = false; }
+                }
+            } catch (error) {
+                showDriverError("ไม่สามารถเชื่อมต่อกับฐานข้อมูลได้");
+                if(btnTest) { btnTest.innerHTML = 'จำลองการสแกนด้วยข้อความ'; btnTest.disabled = false; }
+            } 
+        }
+
+        // ดึงข้อมูล Route กลับมาจาก Server
+        async function fetchRouteData(docNo) {
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: "POST", mode: "cors", headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({ action: "getRouteData", docNo: docNo.trim() })
+                });
+                const result = await response.json();
+                
+                if(result.status === "success") {
+                    routeData = result.data;
                     localStorage.setItem('deliveryRouteData', JSON.stringify(routeData));
                     document.getElementById('manual-scan-input').value = ""; 
                     renderDriverState();
                 } else {
-                    showDriverError("การบันทึกล้มเหลว: " + result.message);
+                    showDriverError("ดึงข้อมูลล้มเหลว: " + result.message);
                 }
             } catch (error) {
-                showDriverError("ไม่สามารถเชื่อมต่อกับฐานข้อมูลได้");
+                showDriverError("เชื่อมต่อฐานข้อมูลล้มเหลว");
             } finally {
-                if(btnTest) { btnTest.innerHTML = 'จำลองการสแกนด้วยข้อความข้างต้น'; btnTest.disabled = false; }
+                const btnTest = document.getElementById('btn-test-scan');
+                if(btnTest) { btnTest.innerHTML = 'จำลองการสแกนด้วยข้อความ'; btnTest.disabled = false; }
             }
         }
 
-        async function confirmDelivery(customerName) {
+        // ปรับปรุงฟังก์ชันยืนยัน โดยดึงข้อมูลตามตำแหน่ง Array (Index)
+        async function confirmDelivery(index, btnElement) {
+            const stopData = routeData.stops[index];
+            const customerName = stopData.customerName;
+
             if(!confirm(`ยืนยันการส่งมอบสินค้าให้ ${customerName} สำเร็จใช่หรือไม่?`)) return;
 
-            document.getElementById('app-container').style.opacity = '0.5';
+            const originalBtnHtml = btnElement.innerHTML;
+            btnElement.innerHTML = 'กำลังบันทึก... <i data-lucide="loader-2" class="animate-spin w-5 h-5 inline"></i>';
+            btnElement.disabled = true;
+            lucide.createIcons();
+
+            // ล็อคหน้าจอไม่ให้กดเบิ้ล
+            const container = document.getElementById('app-container');
+            container.style.opacity = '0.7';
+            container.style.pointerEvents = 'none';
 
             try {
                 const response = await fetch(WEB_APP_URL, {
@@ -455,9 +460,7 @@
                 
                 const result = await response.json();
                 if(result.status === "success") {
-                    // Update Local State
-                    const stop = routeData.stops.find(s => s.customerName === customerName);
-                    if(stop) stop.status = 'completed';
+                    stopData.status = 'completed';
                     localStorage.setItem('deliveryRouteData', JSON.stringify(routeData));
                     
                     renderDriverState();
@@ -470,12 +473,19 @@
                         }, 500);
                     }
                 } else {
-                    alert("เกิดข้อผิดพลาด: " + result.message);
+                    alert("เกิดข้อผิดพลาดจากฐานข้อมูล: " + result.message);
+                    btnElement.innerHTML = originalBtnHtml;
+                    btnElement.disabled = false;
                 }
             } catch (error) {
-                alert("เชื่อมต่อฐานข้อมูลล้มเหลว");
+                alert("เชื่อมต่อฐานข้อมูลล้มเหลว กรุณาตรวจสอบอินเทอร์เน็ต");
+                btnElement.innerHTML = originalBtnHtml;
+                btnElement.disabled = false;
             } finally {
-                document.getElementById('app-container').style.opacity = '1';
+                // ปลดล็อคหน้าจอ
+                container.style.opacity = '1';
+                container.style.pointerEvents = 'auto';
+                lucide.createIcons();
             }
         }
 
@@ -510,8 +520,9 @@
             
             const btn = document.getElementById('btn-search-tracking');
             const originalHtml = btn.innerHTML;
-            btn.innerHTML = 'กำลังดึงข้อมูล...';
+            btn.innerHTML = 'กำลังดึงข้อมูล... <i data-lucide="loader-2" class="animate-spin w-5 h-5 inline"></i>';
             btn.disabled = true;
+            lucide.createIcons();
 
             try {
                 const response = await fetch(WEB_APP_URL, {
@@ -537,7 +548,7 @@
         function renderCustomerResult(data) {
             const isCompleted = data.status === 'completed';
 
-            document.getElementById('cus-track-no').innerText = "เอกสารอ้างอิง: " + data.docNo;
+            document.getElementById('cus-track-no').innerText = "อ้างอิง: " + data.docNo;
             document.getElementById('cus-customer-name').innerText = data.customerName;
             document.getElementById('cus-invoices').innerText = data.invoices;
             document.getElementById('cus-origin-name').innerText = "รับจาก: " + data.origin;
