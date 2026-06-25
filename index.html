@@ -5,29 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Delivery Tracking App</title>
     
-    <!-- PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#1e293b">
+    <meta name="theme-color" content="#0f172a">
     <link id="manifest-link" rel="manifest" href="">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2769/2769339.png">
 
     <!-- CSS & JS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Prompt', sans-serif; background-color: #1e293b; user-select: none; -webkit-user-select: none; }
+        body { font-family: 'Prompt', sans-serif; background-color: #0f172a; user-select: none; -webkit-user-select: none; }
         
         /* Animations */
         @keyframes scan { 0%, 100% { top: 0; } 50% { top: 100%; } }
-        .animate-scan { animation: scan 1.5s ease-in-out infinite; }
+        .animate-scan { animation: scan 2s ease-in-out infinite; }
         
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .animate-slideUp { animation: slideUp 0.3s ease-out; }
         
-        /* Animation ตอนกดรหัส PIN ผิด */
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
             20%, 60% { transform: translateX(-10px); }
@@ -35,11 +35,20 @@
         }
         .animate-shake { animation: shake 0.4s ease-in-out; }
 
-        .hide { display: none !important; }
-        #reader { width: 100%; border-radius: 0.5rem; overflow: hidden; border: none; }
-        #reader video { object-fit: cover; border-radius: 0.5rem; }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); }
+            100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        .animate-pulse-ring { animation: pulse-ring 2s infinite; }
 
-        /* Numpad Button Style */
+        .hide { display: none !important; }
+        #reader { width: 100%; overflow: hidden; border: none; }
+        #reader video { object-fit: cover; border-radius: 1rem; }
+        #reader__dashboard_section_csr span { color: transparent !important; }
+        #reader__dashboard_section_swaplink { display: none !important; }
+
+        /* Numpad Style */
         .pin-btn {
             width: 70px; height: 70px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
@@ -47,106 +56,147 @@
             transition: all 0.1s;
         }
         .pin-btn:active { background-color: rgba(255, 255, 255, 0.2); transform: scale(0.9); }
+
+        /* Scrollbar styling for Admin Dashboard */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center">
+<body class="min-h-screen flex flex-col items-center justify-center bg-slate-900">
 
-    <div id="app-container" class="w-full bg-white overflow-hidden relative flex flex-col transition-all duration-500 h-screen max-w-md shadow-2xl sm:border-[8px] sm:border-black sm:rounded-[2.5rem] sm:h-[850px] sm:mt-10">
+    <!-- Custom Modal System (Replaces alert and confirm) -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center hide opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-[90%] mx-4 shadow-2xl transform scale-95 transition-transform duration-300" id="custom-modal-box">
+            <div id="modal-icon-container" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-blue-100 text-blue-600">
+                <i id="modal-icon" data-lucide="info" class="w-8 h-8"></i>
+            </div>
+            <h3 id="modal-title" class="text-xl font-bold text-center text-slate-800 mb-2">แจ้งเตือน</h3>
+            <p id="modal-message" class="text-slate-600 text-center mb-6 text-sm"></p>
+            <div id="modal-buttons" class="flex gap-3 justify-center">
+                <!-- Buttons injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <div id="app-container" class="w-full bg-white overflow-hidden relative flex flex-col transition-all duration-500 h-screen max-w-md shadow-2xl sm:border-[8px] sm:border-slate-800 sm:rounded-[2.5rem] sm:h-[850px] sm:mt-10">
         
         <!-- ==================== VIEW 0: LOGIN ==================== -->
         <div id="view-login" class="flex flex-col h-full bg-slate-100 items-center justify-center p-6 hide">
             <div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm text-center relative">
-                
                 <button id="install-btn" onclick="installApp()" class="absolute -top-4 -right-4 bg-yellow-400 text-yellow-900 font-bold px-4 py-2 rounded-full shadow-lg flex items-center gap-1 text-sm hide animate-bounce">
-                    <i data-lucide="download" class="w-4 h-4"></i> ติดตั้งแอปลงเครื่อง
+                    <i data-lucide="download" class="w-4 h-4"></i> ติดตั้งแอป
                 </button>
 
                 <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
                     <i data-lucide="truck" class="text-blue-600 w-10 h-10"></i>
                 </div>
-                <h1 class="text-2xl font-bold text-slate-800 mb-2">Delivery Tracking</h1>
-                <p class="text-slate-500 mb-8">กรุณาเลือกระบบที่คุณต้องการเข้าใช้งาน</p>
+                <h1 class="text-2xl font-bold text-slate-800 mb-2">DeliTrack</h1>
+                <p class="text-slate-500 mb-8 text-sm">เลือกระบบที่คุณต้องการเข้าใช้งาน</p>
                 
-                <div class="space-y-4">
+                <div class="space-y-3">
                     <button onclick="handleLogin('driver')" class="w-full p-4 border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-xl flex items-center gap-4 transition-all">
-                        <i data-lucide="scan" class="text-blue-600 w-7 h-7"></i>
-                        <div class="text-left"><p class="font-bold text-slate-800">พนักงานขับรถ</p><p class="text-xs text-slate-500">สแกนรับงาน, อัปเดตสถานะ</p></div>
+                        <i data-lucide="steering-wheel" class="text-blue-600 w-6 h-6"></i>
+                        <div class="text-left"><p class="font-bold text-slate-800">พนักงานขับรถ</p></div>
                     </button>
                     <button onclick="handleLogin('customer')" class="w-full p-4 border-2 border-slate-200 hover:border-green-500 hover:bg-green-50 rounded-xl flex items-center gap-4 transition-all">
-                        <i data-lucide="search" class="text-green-600 w-7 h-7"></i>
-                        <div class="text-left"><p class="font-bold text-slate-800">ลูกค้า (เช็คพัสดุ)</p><p class="text-xs text-slate-500">ค้นหาจากเลข Invoice</p></div>
+                        <i data-lucide="search" class="text-green-600 w-6 h-6"></i>
+                        <div class="text-left"><p class="font-bold text-slate-800">ลูกค้า (เช็คพัสดุ)</p></div>
+                    </button>
+                    <button onclick="handleLogin('admin')" class="w-full p-4 border-2 border-slate-200 hover:border-slate-800 hover:bg-slate-50 rounded-xl flex items-center gap-4 transition-all">
+                        <i data-lucide="layout-dashboard" class="text-slate-800 w-6 h-6"></i>
+                        <div class="text-left"><p class="font-bold text-slate-800">ผู้ดูแลระบบ (Admin)</p></div>
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- ==================== VIEW 0.5: DRIVER AUTH (ลงทะเบียน / เข้าสู่ระบบครั้งแรก) ==================== -->
+        <!-- ==================== VIEW 0.5: DRIVER AUTH ==================== -->
         <div id="view-driver-auth" class="flex-col h-full bg-slate-100 items-center justify-start p-6 hide overflow-y-auto">
-            <button onclick="backToMain()" class="mb-4 text-slate-500 flex items-center gap-1 font-bold"><i data-lucide="chevron-left" class="w-5 h-5"></i> กลับหน้าหลัก</button>
+            <button onclick="backToMain()" class="mb-4 text-slate-500 flex items-center gap-1 font-bold w-full"><i data-lucide="chevron-left" class="w-5 h-5"></i> กลับหน้าหลัก</button>
             <div class="bg-white p-6 rounded-3xl shadow-xl w-full max-w-sm relative">
                 <div class="flex border-b border-slate-200 mb-6">
                     <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-3 text-center font-bold text-blue-600 border-b-2 border-blue-600 transition-all">เข้าสู่ระบบ</button>
                     <button id="tab-register" onclick="switchAuthTab('register')" class="flex-1 py-3 text-center font-bold text-slate-400 border-b-2 border-transparent transition-all">ลงทะเบียนใหม่</button>
                 </div>
 
-                <!-- Login Form -->
+                <!-- Login -->
                 <div id="form-login" class="space-y-4">
-                    <div><label class="text-sm font-bold text-slate-600">เบอร์โทรศัพท์</label><input type="tel" id="login-phone" class="w-full mt-1 p-3 border rounded-xl outline-none focus:border-blue-500" placeholder="08X-XXX-XXXX"></div>
-                    <div><label class="text-sm font-bold text-slate-600">รหัสผ่าน (PIN 6 หลัก)</label><input type="password" id="login-pass" class="w-full mt-1 p-3 border rounded-xl outline-none focus:border-blue-500" placeholder="••••••" maxlength="6"></div>
-                    <button id="btn-login" onclick="submitAuth('login')" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl mt-4 flex justify-center items-center gap-2 shadow-md">เข้าสู่ระบบ</button>
+                    <div><label class="text-sm font-bold text-slate-600">เบอร์โทรศัพท์</label><input type="tel" id="login-phone" class="w-full mt-1 p-3 border rounded-xl outline-none focus:border-blue-500 bg-slate-50" placeholder="08X-XXX-XXXX"></div>
+                    <div><label class="text-sm font-bold text-slate-600">รหัสผ่าน (PIN 6 หลัก)</label><input type="password" id="login-pass" class="w-full mt-1 p-3 border rounded-xl outline-none focus:border-blue-500 bg-slate-50 text-center tracking-[1em]" placeholder="••••••" maxlength="6"></div>
+                    <button id="btn-login" onclick="submitAuth('login')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl mt-4 flex justify-center items-center gap-2 shadow-md transition-colors">เข้าสู่ระบบ</button>
                 </div>
 
-                <!-- Register Form -->
-                <div id="form-register" class="space-y-4 hide">
-                    <div><label class="text-sm font-bold text-slate-600">ชื่อ-นามสกุล</label><input type="text" id="reg-name" class="w-full mt-1 p-3 border rounded-xl outline-none focus:border-blue-500" placeholder="ระบุชื่อจริง"></div>
-                    <div><label class="text-sm font-bold text-slate-600">ทะเบียนรถ</label><input type="text" id="reg-plate" class="w-full mt-1 p-3 border rounded-xl outline-none focus:border-blue-500" placeholder="เช่น 1กข 1234 กทม"></div>
-                    <div><label class="text-sm font-bold text-slate-600">เบอร์โทรศัพท์</label><input type="tel" id="reg-phone" class="w-full mt-1 p-3 border rounded-xl outline-none focus:border-blue-500" placeholder="08X-XXX-XXXX"></div>
-                    <div><label class="text-sm font-bold text-slate-600">ตั้งรหัสผ่าน (PIN 6 หลัก)</label><input type="password" id="reg-pass" class="w-full mt-1 p-3 border rounded-xl outline-none focus:border-blue-500" placeholder="ตั้งรหัส PIN 6 หลัก" maxlength="6"></div>
-                    <button id="btn-register" onclick="submitAuth('register')" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl mt-4 flex justify-center items-center gap-2 shadow-md">ลงทะเบียนพนักงาน</button>
+                <!-- Register -->
+                <div id="form-register" class="space-y-3 hide">
+                    <div><label class="text-xs font-bold text-slate-600">ชื่อ-นามสกุล</label><input type="text" id="reg-name" class="w-full mt-1 p-2 border rounded-lg outline-none focus:border-blue-500 bg-slate-50"></div>
+                    <div><label class="text-xs font-bold text-slate-600">ทะเบียนรถ</label><input type="text" id="reg-plate" class="w-full mt-1 p-2 border rounded-lg outline-none focus:border-blue-500 bg-slate-50" placeholder="1กข 1234 กทม"></div>
+                    <div><label class="text-xs font-bold text-slate-600">เบอร์โทรศัพท์</label><input type="tel" id="reg-phone" class="w-full mt-1 p-2 border rounded-lg outline-none focus:border-blue-500 bg-slate-50"></div>
+                    <div><label class="text-xs font-bold text-slate-600">ตั้งรหัสผ่าน (PIN 6 หลัก)</label><input type="password" id="reg-pass" class="w-full mt-1 p-2 border rounded-lg outline-none focus:border-blue-500 bg-slate-50 text-center tracking-widest" maxlength="6"></div>
+                    <button id="btn-register" onclick="submitAuth('register')" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl mt-2 flex justify-center items-center gap-2 shadow-md">ลงทะเบียนพนักงาน</button>
                 </div>
             </div>
         </div>
 
-        <!-- ==================== VIEW 0.8: PIN LOCK SCREEN (TrueMoney Style) ==================== -->
-        <div id="view-pin-lock" class="flex-col h-full items-center justify-between p-6 hide relative" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
-            
+        <!-- ==================== VIEW 0.8: PIN LOCK SCREEN ==================== -->
+        <div id="view-pin-lock" class="flex-col h-full items-center justify-between p-6 hide relative bg-slate-900" style="background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);">
             <div class="w-full flex justify-end pt-4">
-                <button onclick="handleLogout()" class="text-slate-400 hover:text-white text-sm font-bold flex items-center gap-1"><i data-lucide="users" class="w-4 h-4"></i> สลับบัญชี</button>
+                <button onclick="handleLogoutConfirm()" class="text-slate-400 hover:text-white text-sm font-bold flex items-center gap-1"><i data-lucide="user-minus" class="w-4 h-4"></i> สลับบัญชี</button>
             </div>
-
             <div class="flex-col items-center justify-center text-center mt-8">
-                <div class="w-20 h-20 bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-600">
+                <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-slate-700 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                     <i data-lucide="user" class="text-blue-400 w-10 h-10"></i>
                 </div>
-                <h2 class="text-white text-xl font-bold mb-1" id="pin-lock-name">สวัสดี, พขร.</h2>
+                <h2 class="text-white text-xl font-bold mb-1" id="pin-lock-name">สวัสดี</h2>
                 <p class="text-slate-400 text-sm">กรุณาใส่รหัส PIN 6 หลัก</p>
-                
-                <!-- จุดไข่ปลาแสดงรหัส PIN -->
-                <div class="flex justify-center gap-4 my-10" id="pin-dots">
-                    <div class="w-4 h-4 rounded-full border-2 border-slate-500 transition-colors"></div>
-                    <div class="w-4 h-4 rounded-full border-2 border-slate-500 transition-colors"></div>
-                    <div class="w-4 h-4 rounded-full border-2 border-slate-500 transition-colors"></div>
-                    <div class="w-4 h-4 rounded-full border-2 border-slate-500 transition-colors"></div>
-                    <div class="w-4 h-4 rounded-full border-2 border-slate-500 transition-colors"></div>
-                    <div class="w-4 h-4 rounded-full border-2 border-slate-500 transition-colors"></div>
+                <div class="flex justify-center gap-4 my-8" id="pin-dots">
+                    <div class="w-4 h-4 rounded-full border-2 border-slate-600 transition-colors"></div>
+                    <div class="w-4 h-4 rounded-full border-2 border-slate-600 transition-colors"></div>
+                    <div class="w-4 h-4 rounded-full border-2 border-slate-600 transition-colors"></div>
+                    <div class="w-4 h-4 rounded-full border-2 border-slate-600 transition-colors"></div>
+                    <div class="w-4 h-4 rounded-full border-2 border-slate-600 transition-colors"></div>
+                    <div class="w-4 h-4 rounded-full border-2 border-slate-600 transition-colors"></div>
                 </div>
                 <p id="pin-error-msg" class="text-red-400 text-sm font-bold h-5"></p>
             </div>
-
             <!-- Numpad -->
-            <div class="grid grid-cols-3 gap-y-4 gap-x-8 max-w-[280px] mx-auto text-white pb-10">
-                <button onclick="pressPin('1')" class="pin-btn">1</button>
-                <button onclick="pressPin('2')" class="pin-btn">2</button>
-                <button onclick="pressPin('3')" class="pin-btn">3</button>
-                <button onclick="pressPin('4')" class="pin-btn">4</button>
-                <button onclick="pressPin('5')" class="pin-btn">5</button>
-                <button onclick="pressPin('6')" class="pin-btn">6</button>
-                <button onclick="pressPin('7')" class="pin-btn">7</button>
-                <button onclick="pressPin('8')" class="pin-btn">8</button>
-                <button onclick="pressPin('9')" class="pin-btn">9</button>
-                <div></div> <!-- ช่องว่าง -->
-                <button onclick="pressPin('0')" class="pin-btn">0</button>
-                <button onclick="deletePin()" class="pin-btn"><i data-lucide="delete" class="w-8 h-8 text-slate-300"></i></button>
+            <div class="grid grid-cols-3 gap-y-6 gap-x-8 max-w-[280px] mx-auto text-white pb-10">
+                <button onclick="pressPin('1')" class="pin-btn hover:bg-white/10">1</button>
+                <button onclick="pressPin('2')" class="pin-btn hover:bg-white/10">2</button>
+                <button onclick="pressPin('3')" class="pin-btn hover:bg-white/10">3</button>
+                <button onclick="pressPin('4')" class="pin-btn hover:bg-white/10">4</button>
+                <button onclick="pressPin('5')" class="pin-btn hover:bg-white/10">5</button>
+                <button onclick="pressPin('6')" class="pin-btn hover:bg-white/10">6</button>
+                <button onclick="pressPin('7')" class="pin-btn hover:bg-white/10">7</button>
+                <button onclick="pressPin('8')" class="pin-btn hover:bg-white/10">8</button>
+                <button onclick="pressPin('9')" class="pin-btn hover:bg-white/10">9</button>
+                <div></div>
+                <button onclick="pressPin('0')" class="pin-btn hover:bg-white/10">0</button>
+                <button onclick="deletePin()" class="pin-btn hover:bg-white/10"><i data-lucide="delete" class="w-8 h-8 text-slate-400"></i></button>
+            </div>
+        </div>
+
+        <!-- ==================== VIEW 0.9: KYC FACE SCAN ==================== -->
+        <div id="view-kyc" class="flex-col h-full bg-slate-900 items-center justify-center p-6 hide relative">
+            <div class="text-center w-full max-w-sm">
+                <h2 class="text-white text-2xl font-bold mb-2">ยืนยันตัวตน</h2>
+                <p class="text-slate-400 text-sm mb-10">กรุณาวางใบหน้าให้อยู่ในกรอบ</p>
+                
+                <div class="relative w-64 h-80 mx-auto rounded-[100px] overflow-hidden border-4 border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.5)] animate-pulse-ring">
+                    <!-- Placeholder video for simulation -->
+                    <video id="kyc-video" class="w-full h-full object-cover bg-slate-800" autoplay playsinline muted></video>
+                    <!-- Overlay Grid -->
+                    <div class="absolute inset-0 border-[20px] border-slate-900/60 rounded-[100px] pointer-events-none"></div>
+                    <!-- Scanning line -->
+                    <div class="absolute top-0 left-0 w-full h-1 bg-green-400 shadow-[0_0_15px_3px_#4ade80] animate-scan"></div>
+                </div>
+
+                <div class="mt-10">
+                    <p id="kyc-status-text" class="text-blue-400 font-bold animate-pulse text-lg tracking-wider">กำลังตรวจสอบเค้าโครงหน้า...</p>
+                </div>
+                <!-- Hidden button to skip KYC if camera fails -->
+                <button onclick="finishKYC()" class="mt-8 text-slate-600 text-xs underline">ข้ามการแสกนหน้า (โหมดทดสอบ)</button>
             </div>
         </div>
 
@@ -154,116 +204,102 @@
         <div id="view-driver" class="flex-col h-full bg-slate-50 overflow-hidden relative hide">
             <header class="bg-slate-900 text-white p-4 shadow-md flex justify-between items-center z-20">
                 <div>
-                    <h1 class="font-bold text-lg flex items-center gap-2"><i data-lucide="truck" class="w-5 h-5"></i> Driver App</h1>
+                    <h1 class="font-bold text-lg flex items-center gap-2"><i data-lucide="truck" class="w-5 h-5 text-blue-400"></i> Driver App</h1>
                     <p id="driver-header-name" class="text-xs text-slate-400"></p>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button onclick="handleLogout()" class="text-slate-300 hover:text-white p-2"><i data-lucide="log-out" class="w-5 h-5"></i></button>
-                </div>
+                <button onclick="handleLogoutConfirm()" class="p-2 bg-slate-800 rounded-full hover:bg-slate-700 transition-colors"><i data-lucide="log-out" class="w-4 h-4"></i></button>
             </header>
 
-            <!-- State: Empty / Not Scanned -->
+            <!-- State: Empty -->
             <div id="driver-empty-state" class="flex-grow flex flex-col items-center justify-center p-6 text-center">
-                <div class="w-24 h-24 bg-white rounded-2xl shadow-md flex items-center justify-center mb-6">
+                <div class="w-24 h-24 bg-white rounded-3xl shadow-lg flex items-center justify-center mb-6 border border-slate-100">
                     <i data-lucide="qr-code" class="text-blue-600 w-12 h-12"></i>
                 </div>
-                <h2 class="text-xl font-bold text-slate-800 mb-2">เริ่มงานจัดส่ง</h2>
-                <p class="text-slate-500 mb-6 text-sm">สแกน QR Code บนใบนำส่งเพื่อรับข้อมูลการจัดส่ง</p>
+                <h2 class="text-xl font-bold text-slate-800 mb-2">รับงานจัดส่ง</h2>
+                <p class="text-slate-500 mb-6 text-sm">สแกน QR Code บนใบนำส่งเพื่อดาวน์โหลดงาน</p>
                 
                 <div class="w-full mb-6">
-                    <textarea id="manual-scan-input" class="w-full p-3 border-2 border-slate-200 rounded-xl text-xs text-slate-600 outline-none focus:border-blue-500" rows="4" placeholder="วางข้อความสแกนที่นี่เพื่อทดสอบ..."></textarea>
-                    <button id="btn-test-scan" onclick="processScanData(document.getElementById('manual-scan-input').value)" class="w-full mt-2 bg-slate-800 text-white font-bold py-2 rounded-lg text-sm transition-transform active:scale-95">จำลองการสแกนด้วยข้อความ</button>
+                    <textarea id="manual-scan-input" class="w-full p-4 border-2 border-slate-200 rounded-xl text-xs text-slate-600 outline-none focus:border-blue-500 font-mono bg-slate-50" rows="3" placeholder="วางข้อมูลจำลองที่นี่..."></textarea>
+                    <button onclick="processScanData(document.getElementById('manual-scan-input').value)" class="w-full mt-3 bg-slate-800 text-white font-bold py-3 rounded-xl text-sm transition-transform active:scale-95 shadow-md">จำลองการดึงข้อมูลจากข้อความ</button>
                 </div>
-
-                <p id="driver-error-msg" class="text-red-500 font-bold mb-4 bg-red-100 px-4 py-2 rounded-lg text-sm hide"></p>
                 
                 <button onclick="startScanner()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 flex items-center justify-center gap-2 transition-transform active:scale-95">
                     <i data-lucide="scan" class="w-6 h-6"></i> เปิดกล้องสแกน QR Code
                 </button>
             </div>
 
-            <!-- State: Scanning Camera -->
-            <div id="driver-scanning-state" class="absolute inset-0 bg-slate-900 z-30 flex flex-col items-center justify-center hide p-4">
-                <h3 class="text-white mb-4 font-bold text-lg flex items-center gap-2"><i data-lucide="camera" class="w-5 h-5"></i> สแกน QR Code</h3>
-                <div class="w-full max-w-sm bg-black rounded-xl overflow-hidden shadow-2xl relative border-2 border-slate-700">
-                    <div id="reader" class="w-full h-80"></div>
-                    <div class="w-full h-0.5 bg-green-500 shadow-[0_0_15px_3px_#22c55e] absolute z-20 animate-scan"></div>
+            <!-- State: Scanning -->
+            <div id="driver-scanning-state" class="fixed inset-0 bg-[#0f172a] z-50 flex flex-col hide">
+                <div class="flex justify-between items-center p-4 pt-6 text-white border-b border-slate-800">
+                    <div class="flex items-center gap-2"><i data-lucide="camera" class="w-6 h-6 text-blue-400"></i><h2 class="text-lg font-bold">สแกนใบนำส่ง</h2></div>
+                    <button onclick="cancelScan()" class="p-2 bg-slate-800 rounded-full hover:bg-slate-700"><i data-lucide="x" class="w-5 h-5"></i></button>
                 </div>
-                <button onclick="cancelScan()" class="mt-8 px-8 py-3 bg-red-500 hover:bg-red-600 text-white rounded-full font-bold shadow-lg transition-transform active:scale-95">ยกเลิกกล้อง</button>
+                <div class="flex-grow flex flex-col items-center justify-center p-4 relative">
+                    <div class="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl relative border-4 border-slate-800">
+                        <div id="reader" class="w-full min-h-[300px] bg-black"></div>
+                    </div>
+                </div>
             </div>
 
             <!-- State: Loaded Route -->
             <div id="driver-data-state" class="p-4 flex-grow overflow-y-auto space-y-4 pb-20 hide">
-                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex justify-between items-center shadow-sm">
-                    <div>
-                        <p class="text-xs text-blue-600 font-bold">เอกสารใบนำส่ง</p>
-                        <p id="driver-doc-no" class="text-xl font-mono font-bold text-blue-900"></p>
-                        <p id="driver-route-name" class="text-sm text-slate-600 mt-1"></p>
+                <div class="bg-blue-900 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 opacity-10"><i data-lucide="file-text" class="w-32 h-32"></i></div>
+                    <p class="text-xs text-blue-300 font-bold tracking-wider">เอกสารใบนำส่ง</p>
+                    <p id="driver-doc-no" class="text-2xl font-mono font-bold mt-1"></p>
+                    <div class="flex items-center gap-2 mt-3 pt-3 border-t border-blue-800">
+                        <i data-lucide="map-pin" class="w-4 h-4 text-blue-400"></i><p id="driver-route-name" class="text-sm text-blue-100"></p>
                     </div>
-                    <button onclick="resetDriverJob()" class="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition-colors"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
+                    <button onclick="resetDriverJobConfirm()" class="absolute top-4 right-4 p-2 bg-blue-800/50 rounded-full hover:bg-blue-800"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
                 </div>
                 
-                <p class="font-bold text-slate-700 text-sm ml-1 mt-4">รายชื่อลูกค้าที่ต้องไปส่ง</p>
-                <div id="driver-stops-list" class="space-y-4">
-                    <!-- Stops render here -->
-                </div>
+                <h3 class="font-bold text-slate-800 text-sm ml-1 mt-6 flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-blue-500"></i> จุดหมายจัดส่ง</h3>
+                <div id="driver-stops-list" class="space-y-4"></div>
             </div>
         </div>
 
         <!-- ==================== VIEW 2: CUSTOMER ==================== -->
-        <div id="view-customer" class="flex-col h-full bg-white hide">
-            <header class="bg-blue-900 text-white p-4 shadow-md flex items-center justify-between">
-                <h1 class="text-lg font-bold flex items-center gap-2"><i data-lucide="package-search" class="w-5 h-5"></i> ค้นหาพัสดุ</h1>
-                <button onclick="backToMain()" class="text-blue-200 hover:text-white p-2"><i data-lucide="log-out" class="w-5 h-5"></i></button>
+        <div id="view-customer" class="flex-col h-full bg-slate-50 hide">
+            <header class="bg-white p-4 shadow-sm flex items-center justify-between z-10 sticky top-0">
+                <div class="flex items-center gap-2 text-blue-900"><i data-lucide="package-search" class="w-6 h-6 text-blue-600"></i><h1 class="text-lg font-bold">ค้นหาพัสดุ</h1></div>
+                <button onclick="backToMain()" class="text-slate-400 hover:text-slate-600 p-2"><i data-lucide="x" class="w-5 h-5"></i></button>
             </header>
             
             <main id="customer-search-state" class="p-6 flex-grow flex flex-col items-center justify-center">
-                <div class="w-full max-w-md">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-2 text-center">ติดตามสถานะสินค้า</h2>
-                    <p class="text-gray-500 text-center mb-8">ตรวจสอบสถานะจากเลข Invoice</p>
+                <div class="w-full max-w-md bg-white p-8 rounded-3xl shadow-lg border border-slate-100 text-center">
+                    <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"><i data-lucide="search" class="w-8 h-8"></i></div>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2">ติดตามสถานะพัสดุ</h2>
+                    <p class="text-slate-500 mb-8 text-sm">กรุณากรอกหมายเลข Invoice (เช่น 4152121206)</p>
                     <div class="mb-6 relative">
-                        <input type="text" id="customer-tracking-input" class="w-full p-4 pl-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-lg font-mono font-bold transition-all" placeholder="เช่น 4152121206">
-                        <i data-lucide="file-text" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6"></i>
+                        <input type="text" id="customer-tracking-input" class="w-full p-4 pl-12 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-lg font-mono font-bold transition-all bg-slate-50">
+                        <i data-lucide="file-text" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-6 h-6"></i>
                     </div>
-                    <button id="btn-search-tracking" onclick="searchTracking()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 text-lg transition-transform active:scale-95">
-                        <i data-lucide="search" class="w-6 h-6"></i> ตรวจสอบ
-                    </button>
+                    <button onclick="searchTracking()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 text-lg transition-transform active:scale-95">ตรวจสอบสถานะ</button>
                 </div>
             </main>
 
-            <div id="customer-result-state" class="flex-col h-full bg-gray-50 overflow-hidden hide">
-                <header class="bg-white p-4 shadow-sm flex items-center gap-4 z-10 sticky top-0">
-                    <button onclick="backToCustomerSearch()" class="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
-                    <div><h1 id="cus-track-no" class="font-bold text-gray-800 font-mono"></h1></div>
-                </header>
-                
+            <div id="customer-result-state" class="flex-col h-full overflow-hidden hide relative">
+                <button onclick="backToCustomerSearch()" class="absolute top-4 left-4 z-20 p-2 bg-white/20 backdrop-blur rounded-full text-white"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>
                 <div class="flex-grow overflow-y-auto pb-10">
-                    <div class="bg-blue-900 text-white p-6 pb-12 relative overflow-hidden">
+                    <div class="bg-slate-900 text-white p-8 pt-16 pb-12 relative overflow-hidden rounded-b-[2rem]">
                         <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(circle, #ffffff 1px, transparent 1px); background-size: 20px 20px;"></div>
-                        <h2 class="text-xl font-bold relative z-10" id="cus-customer-name"></h2>
-                        <p class="text-blue-200 text-sm relative z-10 mt-1">Invoice: <span id="cus-invoices" class="font-mono"></span></p>
+                        <h2 class="text-2xl font-bold relative z-10 text-blue-400 mb-1" id="cus-customer-name"></h2>
+                        <p class="text-slate-400 text-sm relative z-10 flex items-center gap-2"><i data-lucide="file" class="w-4 h-4"></i> Ref: <span id="cus-track-no" class="font-mono text-white"></span></p>
+                        <p class="text-slate-400 text-sm relative z-10 flex items-center gap-2 mt-1"><i data-lucide="layers" class="w-4 h-4"></i> Inv: <span id="cus-invoices" class="font-mono text-white"></span></p>
                     </div>
                     
-                    <div class="bg-white mx-4 -mt-6 relative z-20 rounded-xl shadow-lg p-6 border border-gray-100">
-                        <h3 class="font-bold text-gray-800 mb-6 flex items-center gap-2 pb-2 border-b"><i data-lucide="map" class="text-blue-600 w-5 h-5"></i> สถานะการเดินทาง</h3>
-                        <div class="relative border-l-2 border-gray-200 ml-4 space-y-8">
+                    <div class="bg-white mx-4 -mt-6 relative z-20 rounded-2xl shadow-xl p-6 border border-slate-100">
+                        <h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2 pb-4 border-b"><i data-lucide="map" class="text-blue-600 w-5 h-5"></i> เส้นทางการเดินทาง</h3>
+                        <div class="relative border-l-2 border-slate-200 ml-4 space-y-8">
                             <div class="relative pl-6">
-                                <div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full flex items-center justify-center bg-gray-800 ring-4 ring-gray-100"></div>
-                                <div>
-                                    <p class="text-sm font-semibold text-gray-800" id="cus-origin-name"></p>
-                                    <p class="text-xs text-green-600 mt-1 flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3 h-3"></i> รับเข้าระบบขนส่งแล้ว</p>
-                                </div>
+                                <div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-slate-800 ring-4 ring-slate-100"></div>
+                                <div><p class="text-sm font-bold text-slate-800" id="cus-origin-name"></p><p class="text-xs text-green-600 mt-1 flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3 h-3"></i> รับเข้าระบบขนส่งแล้ว</p></div>
                             </div>
                             <div class="relative pl-6">
-                                <div id="cus-dest-dot" class="absolute -left-[9px] top-1 w-4 h-4 rounded-full flex items-center justify-center bg-gray-200 ring-4 ring-white border-2 border-gray-400">
-                                    <i id="cus-dest-check" data-lucide="check" class="w-3 h-3 text-white hide"></i>
-                                </div>
+                                <div id="cus-dest-dot" class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-slate-200 ring-4 ring-white border-2 border-slate-400 flex items-center justify-center"><i id="cus-dest-check" data-lucide="check" class="w-3 h-3 text-white hide"></i></div>
                                 <div>
-                                    <div class="flex justify-between items-start">
-                                        <p id="cus-dest-title" class="text-sm font-bold text-gray-800">ปลายทาง: กำลังจัดส่ง</p>
-                                        <span id="cus-badge" class="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded font-bold">รอส่ง</span>
-                                    </div>
-                                    <p id="cus-timestamp" class="text-xs text-gray-400 mt-1 font-mono"></p>
+                                    <div class="flex justify-between items-start"><p id="cus-dest-title" class="text-sm font-bold text-slate-800">ปลายทาง</p><span id="cus-badge" class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded-full font-bold uppercase tracking-wider">รอจัดส่ง</span></div>
+                                    <p id="cus-timestamp" class="text-xs text-slate-400 mt-2 font-mono bg-slate-50 inline-block px-2 py-1 rounded"></p>
                                 </div>
                             </div>
                         </div>
@@ -272,46 +308,290 @@
             </div>
         </div>
 
+        <!-- ==================== VIEW 3: ADMIN DASHBOARD ==================== -->
+        <div id="view-admin" class="flex-col h-full bg-[#0f172a] hide w-full max-w-7xl mx-auto overflow-hidden transition-all duration-300">
+            <div class="flex h-full w-full">
+                <!-- Sidebar -->
+                <aside class="w-64 bg-[#1e293b] border-r border-slate-800 flex flex-col hidden md:flex shrink-0">
+                    <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+                        <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white"><i data-lucide="box" class="w-5 h-5"></i></div>
+                        <div><h1 class="font-bold text-white tracking-wide">DeliTrack</h1><p class="text-[10px] text-slate-400 font-mono">v1.0 PROTOTYPE</p></div>
+                    </div>
+                    <nav class="flex-grow p-4 space-y-1">
+                        <p class="text-xs font-bold text-slate-500 mb-3 ml-2 uppercase tracking-wider">หลัก</p>
+                        <button onclick="switchAdminTab('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-4 py-3 bg-blue-600/10 text-blue-400 rounded-xl font-medium transition-colors"><i data-lucide="layout-dashboard" class="w-5 h-5"></i> ภาพรวม</button>
+                        <button class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-medium transition-colors"><i data-lucide="package-plus" class="w-5 h-5"></i> รับสินค้า</button>
+                        <button class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-medium transition-colors"><i data-lucide="map-pin" class="w-5 h-5"></i> จุดส่ง</button>
+                        <button onclick="switchAdminTab('gps')" id="nav-gps" class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-medium transition-colors"><i data-lucide="map" class="w-5 h-5"></i> GPS Tracking</button>
+                        
+                        <p class="text-xs font-bold text-slate-500 mb-3 mt-6 ml-2 uppercase tracking-wider">การดำเนินการ</p>
+                        <button class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-medium transition-colors"><i data-lucide="clipboard-check" class="w-5 h-5"></i> Proof of Delivery</button>
+                        <button class="w-full flex items-center justify-between px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-medium transition-colors">
+                            <div class="flex items-center gap-3"><i data-lucide="bell" class="w-5 h-5"></i> แจ้งเตือน</div><span class="w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold">3</span>
+                        </button>
+                    </nav>
+                    <div class="p-4 border-t border-slate-800">
+                        <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl hover:bg-slate-800 cursor-pointer" onclick="handleLogoutConfirm()">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 border border-slate-600"><i data-lucide="user" class="w-4 h-4"></i></div>
+                                <div><p class="text-sm font-bold text-white">Admin</p><p class="text-[10px] text-slate-400">HQ Control</p></div>
+                            </div>
+                            <i data-lucide="log-out" class="w-4 h-4 text-slate-500 hover:text-red-400"></i>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Mobile Header -->
+                <div class="md:hidden flex items-center justify-between p-4 bg-[#1e293b] border-b border-slate-800 w-full absolute top-0 z-50">
+                    <div class="flex items-center gap-2"><div class="w-6 h-6 bg-blue-600 rounded flex items-center justify-center text-white"><i data-lucide="box" class="w-3 h-3"></i></div><h1 class="font-bold text-white">DeliTrack Admin</h1></div>
+                    <div class="flex gap-2">
+                        <button onclick="switchAdminTab('dashboard')" class="p-2 text-slate-300"><i data-lucide="layout-dashboard" class="w-5 h-5"></i></button>
+                        <button onclick="switchAdminTab('gps')" class="p-2 text-slate-300"><i data-lucide="map" class="w-5 h-5"></i></button>
+                        <button onclick="handleLogoutConfirm()" class="p-2 text-red-400"><i data-lucide="log-out" class="w-5 h-5"></i></button>
+                    </div>
+                </div>
+
+                <!-- Main Content Area -->
+                <main class="flex-grow flex flex-col h-full overflow-hidden pt-14 md:pt-0">
+                    
+                    <!-- Top Bar -->
+                    <header class="h-16 border-b border-slate-800 bg-[#0f172a] flex items-center justify-between px-8 shrink-0 hidden md:flex">
+                        <h2 id="admin-page-title" class="text-white font-bold flex items-center gap-2"><i data-lucide="layout-dashboard" class="w-5 h-5 text-slate-400"></i> ภาพรวม</h2>
+                        <div class="flex items-center gap-4">
+                            <div class="px-3 py-1 bg-slate-800 rounded text-slate-300 font-mono text-sm border border-slate-700" id="admin-clock">00:00:00</div>
+                            <button class="p-2 text-slate-400 hover:text-white border border-slate-800 rounded bg-slate-800/50"><i data-lucide="maximize" class="w-4 h-4"></i></button>
+                        </div>
+                    </header>
+
+                    <!-- TAB 1: Dashboard -->
+                    <div id="admin-tab-dashboard" class="flex-grow p-4 md:p-8 overflow-y-auto space-y-6">
+                        <!-- Stat Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+                            <div class="bg-[#1e293b] p-5 rounded-xl border border-slate-800 relative overflow-hidden group">
+                                <div class="absolute right-0 top-0 w-24 h-24 bg-blue-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                                <p class="text-slate-400 text-sm flex items-center gap-2 mb-2"><i data-lucide="truck" class="w-4 h-4"></i> กำลังส่ง</p>
+                                <h3 class="text-3xl font-bold text-blue-400 mb-2" id="dash-moving">0</h3>
+                                <p class="text-xs text-green-400 flex items-center gap-1"><i data-lucide="arrow-up-right" class="w-3 h-3"></i> อัปเดตล่าสุด</p>
+                            </div>
+                            <div class="bg-[#1e293b] p-5 rounded-xl border border-slate-800 relative overflow-hidden group">
+                                <div class="absolute right-0 top-0 w-24 h-24 bg-green-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                                <p class="text-slate-400 text-sm flex items-center gap-2 mb-2"><i data-lucide="check-circle-2" class="w-4 h-4"></i> ส่งสำเร็จวันนี้</p>
+                                <h3 class="text-3xl font-bold text-green-400 mb-2">12</h3>
+                                <p class="text-xs text-green-400 flex items-center gap-1"><i data-lucide="trending-up" class="w-3 h-3"></i> 96.2% อัตราสำเร็จ</p>
+                            </div>
+                            <div class="bg-[#1e293b] p-5 rounded-xl border border-slate-800 relative overflow-hidden group">
+                                <div class="absolute right-0 top-0 w-24 h-24 bg-teal-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                                <p class="text-slate-400 text-sm flex items-center gap-2 mb-2"><i data-lucide="clock" class="w-4 h-4"></i> เวลาเฉลี่ย</p>
+                                <h3 class="text-3xl font-bold text-teal-400 mb-2">2.4 ชม.</h3>
+                                <p class="text-xs text-teal-400 flex items-center gap-1"><i data-lucide="arrow-down-right" class="w-3 h-3"></i> -12 นาที vs ETA</p>
+                            </div>
+                            <div class="bg-[#1e293b] p-5 rounded-xl border border-red-900/30 relative overflow-hidden group">
+                                <div class="absolute right-0 top-0 w-24 h-24 bg-red-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                                <p class="text-slate-400 text-sm flex items-center gap-2 mb-2"><i data-lucide="bell" class="w-4 h-4"></i> แจ้งเตือน</p>
+                                <h3 class="text-3xl font-bold text-red-400 mb-2">3</h3>
+                                <p class="text-xs text-red-400 flex items-center gap-1"><i data-lucide="alert-circle" class="w-3 h-3"></i> ต้องดำเนินการ</p>
+                            </div>
+                        </div>
+
+                        <!-- Main Grid -->
+                        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                            <!-- Table -->
+                            <div class="xl:col-span-2 bg-[#1e293b] rounded-xl border border-slate-800 overflow-hidden flex flex-col">
+                                <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-800/30">
+                                    <h3 class="text-white font-bold flex items-center gap-2"><i data-lucide="list" class="w-4 h-4 text-blue-400"></i> งานส่งทั้งหมดวันนี้</h3>
+                                    <button class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded flex items-center gap-1 transition-colors"><i data-lucide="plus" class="w-3 h-3"></i> เพิ่มงาน</button>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left text-sm text-slate-400">
+                                        <thead class="text-xs uppercase bg-slate-800/50 text-slate-500 border-b border-slate-800">
+                                            <tr><th class="px-5 py-4 font-medium">หมายเลขงาน</th><th class="px-5 py-4 font-medium">ปลายทาง</th><th class="px-5 py-4 font-medium">สถานะ</th><th class="px-5 py-4 text-center font-medium">Action</th></tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-800/50" id="dash-table-body">
+                                            <!-- Mock Rows -->
+                                            <tr class="hover:bg-slate-800/30 transition-colors">
+                                                <td class="px-5 py-4 font-mono text-slate-300">DT-2024-0040</td>
+                                                <td class="px-5 py-4"><p class="text-white font-medium">สาขา สีลม</p><p class="text-[10px]">ถ.สีลม บางรัก</p></td>
+                                                <td class="px-5 py-4"><span class="px-2 py-1 bg-green-500/10 text-green-400 text-xs rounded font-medium border border-green-500/20">ส่งสำเร็จ</span></td>
+                                                <td class="px-5 py-4 text-center"><button class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700"><i data-lucide="external-link" class="w-4 h-4"></i></button></td>
+                                            </tr>
+                                            <tr class="hover:bg-slate-800/30 transition-colors">
+                                                <td class="px-5 py-4 font-mono text-slate-300 flex items-center gap-2">DT-2024-0042 <span class="px-1.5 py-0.5 bg-red-500/20 text-red-400 text-[9px] rounded font-bold uppercase">ด่วน</span></td>
+                                                <td class="px-5 py-4"><p class="text-white font-medium">สาขา ลาดพร้าว</p><p class="text-[10px]">ลาดพร้าว 71 จตุจักร</p></td>
+                                                <td class="px-5 py-4"><span class="px-2 py-1 bg-yellow-500/10 text-yellow-400 text-xs rounded font-medium border border-yellow-500/20">ล่าช้า</span></td>
+                                                <td class="px-5 py-4 text-center"><button class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700"><i data-lucide="external-link" class="w-4 h-4"></i></button></td>
+                                            </tr>
+                                             <tr class="hover:bg-slate-800/30 transition-colors">
+                                                <td class="px-5 py-4 font-mono text-slate-300">DT-2024-0043</td>
+                                                <td class="px-5 py-4"><p class="text-white font-medium">สาขา บางนา</p><p class="text-[10px]">บางนา-ตราด กม.3</p></td>
+                                                <td class="px-5 py-4"><span class="px-2 py-1 bg-blue-500/10 text-blue-400 text-xs rounded font-medium border border-blue-500/20">กำลังส่ง</span></td>
+                                                <td class="px-5 py-4 text-center"><button class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700"><i data-lucide="external-link" class="w-4 h-4"></i></button></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Side Panels -->
+                            <div class="space-y-6">
+                                <!-- Alerts -->
+                                <div class="bg-[#1e293b] rounded-xl border border-slate-800 overflow-hidden">
+                                    <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+                                        <h3 class="text-white font-bold text-sm flex items-center gap-2"><i data-lucide="bell" class="w-4 h-4 text-slate-400"></i> แจ้งเตือนล่าสุด</h3>
+                                        <button class="text-xs text-slate-500 hover:text-slate-300">ดูทั้งหมด</button>
+                                    </div>
+                                    <div class="p-4 space-y-3">
+                                        <div class="p-3 bg-slate-800/50 rounded-lg border-l-2 border-yellow-500">
+                                            <p class="text-sm font-bold text-slate-200 mb-1">ETA ล่าช้า — สาขาลาดพร้าว</p>
+                                            <p class="text-[10px] text-slate-400">ล่าช้ากว่ากำหนด 20 นาที คาดว่าถึง 13:20</p>
+                                        </div>
+                                        <div class="p-3 bg-slate-800/50 rounded-lg border-l-2 border-red-500">
+                                            <p class="text-sm font-bold text-slate-200 mb-1">GPS สัญญาณอ่อน</p>
+                                            <p class="text-[10px] text-slate-400">รถ BKK-002 สัญญาณน้อยกว่า 50% บริเวณทางด่วน</p>
+                                        </div>
+                                         <div class="p-3 bg-slate-800/50 rounded-lg border-l-2 border-blue-500">
+                                            <p class="text-sm font-bold text-slate-200 mb-1">ส่งสำเร็จ — สาขาอโศก</p>
+                                            <p class="text-[10px] text-slate-400">POD ยืนยันโดย คุณสมใจ เวลา 12:14</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Progress -->
+                                <div class="bg-[#1e293b] rounded-xl border border-slate-800 p-5">
+                                    <h3 class="text-white font-bold text-sm mb-5 flex items-center gap-2"><i data-lucide="pie-chart" class="w-4 h-4 text-slate-400"></i> สรุปสถานะ</h3>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <div class="flex justify-between text-xs mb-1"><span class="text-slate-400">ส่งสำเร็จ</span><span class="text-slate-300 font-mono">75%</span></div>
+                                            <div class="w-full bg-slate-800 rounded-full h-1.5"><div class="bg-green-500 h-1.5 rounded-full" style="width: 75%"></div></div>
+                                        </div>
+                                        <div>
+                                            <div class="flex justify-between text-xs mb-1"><span class="text-slate-400">กำลังส่ง</span><span class="text-slate-300 font-mono">20%</span></div>
+                                            <div class="w-full bg-slate-800 rounded-full h-1.5"><div class="bg-blue-500 h-1.5 rounded-full" style="width: 20%"></div></div>
+                                        </div>
+                                        <div>
+                                            <div class="flex justify-between text-xs mb-1"><span class="text-slate-400">ล่าช้า</span><span class="text-slate-300 font-mono">5%</span></div>
+                                            <div class="w-full bg-slate-800 rounded-full h-1.5"><div class="bg-yellow-500 h-1.5 rounded-full" style="width: 5%"></div></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: GPS Tracking -->
+                    <div id="admin-tab-gps" class="flex-grow flex flex-col md:flex-row overflow-hidden hide">
+                        <div class="w-full md:w-80 bg-[#1e293b] border-r border-slate-800 flex flex-col h-1/3 md:h-full z-10 shrink-0">
+                            <div class="p-4 border-b border-slate-800 bg-[#1e293b] flex justify-between items-center">
+                                <h2 class="font-bold text-white flex items-center gap-2"><i data-lucide="truck" class="w-4 h-4 text-blue-400"></i> รถกำลังวิ่งงาน</h2>
+                                <span class="text-[10px] bg-slate-800 px-2 py-1 rounded text-slate-400 border border-slate-700" id="gps-update-time">รออัปเดต...</span>
+                            </div>
+                            <div class="flex-grow overflow-y-auto p-2" id="admin-fleet-list">
+                                <div class="flex flex-col items-center justify-center h-full text-slate-500 opacity-50 space-y-3">
+                                    <i data-lucide="radar" class="w-10 h-10 animate-pulse"></i>
+                                    <p class="text-sm">กำลังค้นหาสัญญาณรถ...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex-grow bg-[#0f172a] relative overflow-hidden h-2/3 md:h-full z-0" id="real-map-container">
+                            <!-- Leaflet Map renders here -->
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+
     </div>
 
     <script>
-        // ==========================================
-        // 0. PWA Setup
-        // ==========================================
-        const manifestData = { name: "Delivery Tracking", short_name: "Delivery", display: "standalone", background_color: "#1e293b", theme_color: "#1e293b" };
-        document.getElementById('manifest-link').href = URL.createObjectURL(new Blob([JSON.stringify(manifestData)], {type: 'application/manifest+json'}));
+        // Custom Modal Functions (Replacing alert/confirm)
+        function showCustomModal(type, title, message, onConfirm = null) {
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('custom-modal-box');
+            const icon = document.getElementById('modal-icon');
+            const iconContainer = document.getElementById('modal-icon-container');
+            const titleEl = document.getElementById('modal-title');
+            const messageEl = document.getElementById('modal-message');
+            const buttonsEl = document.getElementById('modal-buttons');
+
+            titleEl.innerText = title;
+            messageEl.innerHTML = message;
+            buttonsEl.innerHTML = '';
+
+            if (type === 'alert' || type === 'error') {
+                icon.setAttribute('data-lucide', type === 'error' ? 'alert-triangle' : 'info');
+                iconContainer.className = type === 'error' ? 'w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-100 text-red-600' : 'w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-blue-100 text-blue-600';
+                
+                const btn = document.createElement('button');
+                btn.className = `px-6 py-2 rounded-xl font-bold text-white w-full ${type === 'error' ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-600 hover:bg-blue-700'}`;
+                btn.innerText = 'ตกลง';
+                btn.onclick = () => hideCustomModal();
+                buttonsEl.appendChild(btn);
+            } else if (type === 'confirm') {
+                icon.setAttribute('data-lucide', 'help-circle');
+                iconContainer.className = 'w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-yellow-100 text-yellow-600';
+                
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = 'px-6 py-2 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 flex-1';
+                cancelBtn.innerText = 'ยกเลิก';
+                cancelBtn.onclick = () => hideCustomModal();
+                
+                const confirmBtn = document.createElement('button');
+                confirmBtn.className = 'px-6 py-2 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 flex-1';
+                confirmBtn.innerText = 'ยืนยัน';
+                confirmBtn.onclick = () => { hideCustomModal(); if(onConfirm) onConfirm(); };
+                
+                buttonsEl.appendChild(cancelBtn);
+                buttonsEl.appendChild(confirmBtn);
+            }
+
+            lucide.createIcons();
+            modal.classList.remove('hide');
+            // Trigger animation
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                box.classList.remove('scale-95');
+                box.classList.add('scale-100');
+            }, 10);
+        }
+
+        function hideCustomModal() {
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('custom-modal-box');
+            modal.classList.add('opacity-0');
+            box.classList.remove('scale-100');
+            box.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hide'), 300);
+        }
+
+        // PWA Setup
+        function setupPWA() {
+            const manifestData = { name: "DeliTrack", short_name: "DeliTrack", display: "standalone", background_color: "#0f172a", theme_color: "#0f172a" };
+            document.getElementById('manifest-link').href = URL.createObjectURL(new Blob([JSON.stringify(manifestData)], {type: 'application/manifest+json'}));
+        }
+        setupPWA();
 
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
+            e.preventDefault(); deferredPrompt = e;
             if(!currentRole) document.getElementById('install-btn').classList.remove('hide');
         });
-
         function installApp() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') document.getElementById('install-btn').classList.add('hide');
-                    deferredPrompt = null;
-                });
-            }
+            if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then(() => { document.getElementById('install-btn').classList.add('hide'); deferredPrompt = null; }); }
         }
 
-        // ==========================================
-        // 1. CONFIGURATION & STATE
-        // ==========================================
+        // Config & State
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyPb09gXXhWwbSpHZk07A53l5Dow2-M5iNcoIsN6wPK4P8hrFxpiLSWjaYYJLvdLFES/exec";
         
         let currentRole = localStorage.getItem('deliveryAppRole');
         let driverInfo = JSON.parse(localStorage.getItem('deliveryDriverInfo')) || null;
         let routeData = JSON.parse(localStorage.getItem('deliveryRouteData')) || null;
         
-        // สถานะการปลดล็อกแอปสำหรับคนขับ
         let isDriverUnlocked = false;
         let currentPin = "";
         
         let html5QrCode = null; 
+        let mapInstance = null;
+        let gpsInterval = null;
+        let adminGpsInterval = null;
+        let adminClockInterval = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
@@ -320,12 +600,12 @@
         });
 
         // -----------------------------------------------------
-        // 2. VIEW & AUTHENTICATION MANAGEMENT
+        // VIEW ROUTING
         // -----------------------------------------------------
         function handleLogin(role) {
             currentRole = role;
-            if (role === 'customer') {
-                localStorage.setItem('deliveryAppRole', 'customer');
+            if (role === 'customer' || role === 'admin') {
+                localStorage.setItem('deliveryAppRole', role);
             }
             updateAppView();
         }
@@ -335,69 +615,71 @@
             updateAppView();
         }
 
-        function handleLogout() {
-            if (confirm("ต้องการสลับบัญชี หรือออกจากระบบหรือไม่?")) {
-                currentRole = null;
-                driverInfo = null;
-                isDriverUnlocked = false;
-                currentPin = "";
-                localStorage.removeItem('deliveryAppRole');
-                localStorage.removeItem('deliveryDriverInfo');
+        function handleLogoutConfirm() {
+            showCustomModal('confirm', 'ออกจากระบบ', 'คุณต้องการออกจากระบบ หรือสลับบัญชีใช่หรือไม่?', () => {
+                currentRole = null; driverInfo = null; isDriverUnlocked = false; currentPin = "";
+                localStorage.removeItem('deliveryAppRole'); localStorage.removeItem('deliveryDriverInfo');
                 if(html5QrCode && html5QrCode.isScanning) html5QrCode.stop().catch(e => console.error(e));
+                stopGPS(); stopAdminGPS(); clearInterval(adminClockInterval);
                 updateAppView();
-            }
+            });
         }
 
-        // ฟังก์ชันสลับการแสดงผลหน้าจอ
         function updateAppView() {
-            // ซ่อนทุกหน้าก่อน
             document.getElementById('view-login').classList.add('hide');
             document.getElementById('view-driver-auth').classList.add('hide');
             document.getElementById('view-pin-lock').classList.add('hide');
+            document.getElementById('view-kyc').classList.add('hide');
             document.getElementById('view-driver').classList.add('hide');
             document.getElementById('view-customer').classList.add('hide');
+            document.getElementById('view-admin').classList.add('hide');
             document.getElementById('install-btn').classList.add('hide'); 
             
             const container = document.getElementById('app-container');
-            container.classList.replace('max-w-6xl', 'max-w-md'); // Reset กว้าง
             
-            if (currentRole === 'driver') {
-                // เช็คว่ามีข้อมูลล็อกอินคาเครื่องไว้ไหม
-                if (driverInfo && driverInfo.phone) {
-                    localStorage.setItem('deliveryAppRole', 'driver');
-                    
-                    if (isDriverUnlocked) {
-                        // ถ้าปลดล็อกแล้ว (หรือเพิ่งล็อกอินเสร็จ) เข้าหน้าทำงานเลย
-                        document.getElementById('view-driver').classList.remove('hide');
-                        document.getElementById('view-driver').classList.add('flex');
-                        document.getElementById('driver-header-name').innerText = driverInfo.name + " (" + driverInfo.plate + ")";
-                        renderDriverState();
-                    } else {
-                        // ถ้ายังมีข้อมูลแต่เพิ่งเปิดแอปใหม่ -> โชว์หน้าจอใส่ PIN
-                        document.getElementById('pin-lock-name').innerText = "สวัสดี, " + driverInfo.name;
-                        resetPinPad();
-                        document.getElementById('view-pin-lock').classList.remove('hide');
-                        document.getElementById('view-pin-lock').classList.add('flex');
-                    }
-                } else {
-                    // ถ้ายังไม่มีข้อมูล -> ไปหน้าลงทะเบียน/เข้าสู่ระบบ
-                    document.getElementById('view-driver-auth').classList.remove('hide');
-                    document.getElementById('view-driver-auth').classList.add('flex');
-                    switchAuthTab('login');
-                }
-            } else if (currentRole === 'customer') {
-                document.getElementById('view-customer').classList.remove('hide');
-                document.getElementById('view-customer').classList.add('flex');
-                backToCustomerSearch();
+            if(currentRole === 'admin') {
+                container.className = "w-full bg-[#0f172a] overflow-hidden relative flex flex-col transition-all duration-500 h-screen w-full max-w-none rounded-none border-none mt-0";
+                document.getElementById('view-admin').classList.remove('hide');
+                document.getElementById('view-admin').classList.add('flex');
+                switchAdminTab('dashboard');
+                startAdminClock();
             } else {
-                document.getElementById('view-login').classList.remove('hide');
-                if (deferredPrompt) document.getElementById('install-btn').classList.remove('hide');
+                container.className = "w-full bg-white overflow-hidden relative flex flex-col transition-all duration-500 h-screen max-w-md shadow-2xl sm:border-[8px] sm:border-slate-800 sm:rounded-[2.5rem] sm:h-[850px] sm:mt-10";
+                
+                if (currentRole === 'driver') {
+                    if (driverInfo && driverInfo.phone) {
+                        localStorage.setItem('deliveryAppRole', 'driver');
+                        if (isDriverUnlocked) {
+                            document.getElementById('view-driver').classList.remove('hide');
+                            document.getElementById('view-driver').classList.add('flex');
+                            document.getElementById('driver-header-name').innerText = driverInfo.name;
+                            renderDriverState();
+                            startGPS();
+                        } else {
+                            document.getElementById('pin-lock-name').innerText = "สวัสดี, " + driverInfo.name.split(' ')[0];
+                            resetPinPad();
+                            document.getElementById('view-pin-lock').classList.remove('hide');
+                            document.getElementById('view-pin-lock').classList.add('flex');
+                        }
+                    } else {
+                        document.getElementById('view-driver-auth').classList.remove('hide');
+                        document.getElementById('view-driver-auth').classList.add('flex');
+                        switchAuthTab('login');
+                    }
+                } else if (currentRole === 'customer') {
+                    document.getElementById('view-customer').classList.remove('hide');
+                    document.getElementById('view-customer').classList.add('flex');
+                    backToCustomerSearch();
+                } else {
+                    document.getElementById('view-login').classList.remove('hide');
+                    if (deferredPrompt) document.getElementById('install-btn').classList.remove('hide');
+                }
             }
             lucide.createIcons();
         }
 
         // -----------------------------------------------------
-        // 3. AUTHENTICATION & PIN PAD LOGIC
+        // DRIVER AUTH & PIN
         // -----------------------------------------------------
         function switchAuthTab(tab) {
             if(tab === 'login') {
@@ -419,105 +701,133 @@
             let originalText = document.getElementById(btnId).innerHTML;
 
             if (action === 'login') {
-                payload = {
-                    phone: document.getElementById('login-phone').value.trim(),
-                    password: document.getElementById('login-pass').value.trim()
-                };
-                if (!payload.phone || payload.password.length !== 6) return alert("กรุณากรอกเบอร์โทร และ รหัส PIN ให้ครบ 6 หลัก");
+                payload = { phone: document.getElementById('login-phone').value.trim(), password: document.getElementById('login-pass').value.trim() };
+                if (!payload.phone || payload.password.length !== 6) return showCustomModal('alert', 'ข้อมูลไม่ครบ', "กรุณากรอกเบอร์โทร และ รหัส PIN ให้ครบ 6 หลัก");
             } else {
-                payload = {
-                    name: document.getElementById('reg-name').value.trim(),
-                    plate: document.getElementById('reg-plate').value.trim(),
-                    phone: document.getElementById('reg-phone').value.trim(),
-                    password: document.getElementById('reg-pass').value.trim()
-                };
-                if (!payload.name || !payload.plate || !payload.phone || payload.password.length !== 6) return alert("กรุณากรอกข้อมูลให้ครบ และตั้งรหัส PIN 6 หลัก");
+                payload = { name: document.getElementById('reg-name').value.trim(), plate: document.getElementById('reg-plate').value.trim(), phone: document.getElementById('reg-phone').value.trim(), password: document.getElementById('reg-pass').value.trim() };
+                if (!payload.name || !payload.plate || !payload.phone || payload.password.length !== 6) return showCustomModal('alert', 'ข้อมูลไม่ครบ', "กรุณากรอกข้อมูลให้ครบ และตั้งรหัส PIN 6 หลัก");
             }
 
             document.getElementById(btnId).innerHTML = '<i data-lucide="loader-2" class="animate-spin w-5 h-5"></i> กำลังตรวจสอบ...';
-            document.getElementById(btnId).disabled = true;
-            lucide.createIcons();
+            document.getElementById(btnId).disabled = true; lucide.createIcons();
 
             try {
-                const response = await fetch(WEB_APP_URL, {
-                    method: "POST", mode: "cors", headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ action: action === 'login' ? "loginDriver" : "registerDriver", data: payload })
-                });
+                const response = await fetch(WEB_APP_URL, { method: "POST", mode: "cors", body: JSON.stringify({ action: action === 'login' ? "loginDriver" : "registerDriver", data: payload }) });
                 const result = await response.json();
                 
                 if(result.status === "success") {
-                    // แอบเก็บรหัส PIN ไว้ในเครื่องด้วยเพื่อใช้ปลดล็อกครั้งถัดไป (แบบรวดเร็วไม่ต้องรอ Server)
                     driverInfo = { ...result.data.driver, pin: payload.password };
                     localStorage.setItem('deliveryDriverInfo', JSON.stringify(driverInfo));
-                    
-                    // ให้ถือว่าปลดล็อกเลยทันที
-                    isDriverUnlocked = true;
-                    updateAppView();
+                    startKYC(); // แทนที่จะเข้าแอปเลย ให้ทำ KYC ก่อน
                 } else {
-                    alert(result.message);
+                    showCustomModal('error', 'ผิดพลาด', result.message);
                 }
-            } catch (error) {
-                alert("เชื่อมต่อฐานข้อมูลล้มเหลว กรุณาลองใหม่");
-            } finally {
-                document.getElementById(btnId).innerHTML = originalText;
-                document.getElementById(btnId).disabled = false;
-                lucide.createIcons();
-            }
+            } catch (error) { showCustomModal('error', 'เชื่อมต่อล้มเหลว', "ไม่สามารถเชื่อมต่อฐานข้อมูลได้"); } 
+            finally { document.getElementById(btnId).innerHTML = originalText; document.getElementById(btnId).disabled = false; lucide.createIcons(); }
         }
 
-        // --- PIN Pad Logic ---
+        // --- PIN Pad ---
         function pressPin(num) {
             if (currentPin.length < 6) {
                 currentPin += num;
                 updatePinUI();
-                if (currentPin.length === 6) verifyPin();
+                if (currentPin.length === 6) setTimeout(verifyPin, 100);
             }
         }
-
         function deletePin() {
-            if (currentPin.length > 0) {
-                currentPin = currentPin.slice(0, -1);
-                updatePinUI();
-            }
+            if (currentPin.length > 0) { currentPin = currentPin.slice(0, -1); updatePinUI(); }
         }
-
         function updatePinUI() {
             const dots = document.getElementById('pin-dots').children;
             for(let i=0; i<6; i++) {
-                if (i < currentPin.length) {
-                    dots[i].className = "w-4 h-4 rounded-full bg-blue-500 border-2 border-blue-500 transition-colors";
-                } else {
-                    dots[i].className = "w-4 h-4 rounded-full border-2 border-slate-500 transition-colors";
-                }
+                if (i < currentPin.length) dots[i].className = "w-4 h-4 rounded-full bg-blue-400 border-2 border-blue-400 transition-colors shadow-[0_0_10px_rgba(59,130,246,0.8)]";
+                else dots[i].className = "w-4 h-4 rounded-full border-2 border-slate-600 transition-colors";
             }
             document.getElementById('pin-error-msg').innerText = "";
         }
-
-        function resetPinPad() {
-            currentPin = "";
-            updatePinUI();
-        }
-
+        function resetPinPad() { currentPin = ""; updatePinUI(); }
+        
         function verifyPin() {
-            // ตรวจสอบกับ PIN ที่บันทึกไว้ตอน Login
             if (currentPin === driverInfo.pin) {
-                isDriverUnlocked = true;
-                updateAppView();
+                startKYC(); // รหัสถูก ไปทำ KYC
             } else {
-                // รหัสผิด -> สั่นหน้าจอ
                 const dotsContainer = document.getElementById('pin-dots');
-                document.getElementById('pin-error-msg').innerText = "รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่";
-                
+                document.getElementById('pin-error-msg').innerText = "รหัส PIN ไม่ถูกต้อง";
                 dotsContainer.classList.remove('animate-shake');
-                void dotsContainer.offsetWidth; // trigger reflow
+                void dotsContainer.offsetWidth; 
                 dotsContainer.classList.add('animate-shake');
-                
-                setTimeout(() => { resetPinPad(); }, 500);
+                setTimeout(resetPinPad, 500);
             }
         }
 
         // -----------------------------------------------------
-        // 4. DRIVER LOGIC
+        // KYC SIMULATION
+        // -----------------------------------------------------
+        let kycStream = null;
+        
+        function startKYC() {
+            document.getElementById('view-driver-auth').classList.add('hide');
+            document.getElementById('view-pin-lock').classList.add('hide');
+            
+            const kycView = document.getElementById('view-kyc');
+            kycView.classList.remove('hide');
+            kycView.classList.add('flex');
+            
+            const video = document.getElementById('kyc-video');
+            const statusText = document.getElementById('kyc-status-text');
+            statusText.innerText = "กำลังเข้าถึงกล้อง...";
+
+            // พยายามเปิดกล้องหน้า (Front camera)
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+                .then(function (stream) {
+                    kycStream = stream;
+                    video.srcObject = stream;
+                    video.play();
+                    
+                    statusText.innerText = "กรุณามองกล้องเพื่อยืนยันใบหน้า";
+                    
+                    // จำลองการแสกนหน้า 3 วินาที
+                    setTimeout(() => {
+                        statusText.innerText = "วิเคราะห์เค้าโครงหน้า...";
+                        statusText.classList.replace('text-blue-400', 'text-yellow-400');
+                    }, 1500);
+
+                    setTimeout(() => {
+                        statusText.innerText = "ยืนยันตัวตนสำเร็จ!";
+                        statusText.classList.replace('text-yellow-400', 'text-green-400');
+                        statusText.classList.remove('animate-pulse');
+                        
+                        // ปิดกล้องแล้วเข้าแอป
+                        setTimeout(finishKYC, 1000);
+                    }, 3500);
+                })
+                .catch(function (err) {
+                    console.log("KYC Camera Error:", err);
+                    statusText.innerText = "ไม่สามารถเปิดกล้องได้ ข้ามการแสกน...";
+                    setTimeout(finishKYC, 1500);
+                });
+            } else {
+                statusText.innerText = "เบราว์เซอร์ไม่รองรับ ข้ามการแสกน...";
+                setTimeout(finishKYC, 1500);
+            }
+        }
+
+        function finishKYC() {
+            if (kycStream) {
+                kycStream.getTracks().forEach(track => track.stop());
+                kycStream = null;
+            }
+            // คืนค่า styling ของ status เผื่อใช้รอบหน้า
+            const statusText = document.getElementById('kyc-status-text');
+            statusText.className = "text-blue-400 font-bold animate-pulse text-lg tracking-wider";
+            
+            isDriverUnlocked = true;
+            updateAppView();
+        }
+
+        // -----------------------------------------------------
+        // DRIVER LOGIC
         // -----------------------------------------------------
         function renderDriverState() {
             document.getElementById('driver-empty-state').classList.add('hide');
@@ -526,7 +836,7 @@
 
             if (routeData && routeData.docNo) {
                 document.getElementById('driver-doc-no').innerText = routeData.docNo;
-                document.getElementById('driver-route-name').innerHTML = `<i data-lucide="map" class="inline w-3 h-3 mr-1"></i> เส้นทาง: ${routeData.route} (รับจาก: ${routeData.origin})`;
+                document.getElementById('driver-route-name').innerText = `${routeData.route} (รับจาก: ${routeData.origin})`;
                 document.getElementById('driver-data-state').classList.remove('hide');
                 
                 const list = document.getElementById('driver-stops-list');
@@ -543,7 +853,7 @@
 
                     let btnHtml = isDone ? '' : `
                         <div class="mt-4 pt-3 border-t border-slate-100 relative z-10">
-                            <button id="btn-confirm-${index}" onclick="confirmDelivery(${index}, this)" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-95 cursor-pointer">
+                            <button onclick="confirmDeliveryConfirm(${index})" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-95 cursor-pointer">
                                 <i data-lucide="check-circle-2" class="w-5 h-5 pointer-events-none"></i> ยืนยันส่งมอบให้ลูกค้านี้
                             </button>
                         </div>`;
@@ -570,47 +880,39 @@
             }
         }
 
-        // --- ระบบสแกน QR ---
         function startScanner() {
             document.getElementById('driver-empty-state').classList.add('hide');
             document.getElementById('driver-scanning-state').classList.remove('hide');
-            document.getElementById('driver-error-msg').classList.add('hide');
-
+            document.getElementById('driver-scanning-state').classList.add('flex');
+            
             if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
             
-            const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
-            html5QrCode.start({ facingMode: "environment" }, config, 
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 }, 
                 async (decodedText) => {
                     await html5QrCode.stop();
                     processScanData(decodedText);
                 }, undefined
             ).catch(err => {
-                showDriverError("ไม่สามารถเปิดกล้องได้ กรุณาตรวจสอบสิทธิ์การอนุญาต");
+                showCustomModal('error', 'เปิดกล้องไม่ได้', 'ไม่สามารถเข้าถึงกล้องได้ กรุณาตรวจสอบสิทธิ์ (Permissions)');
+                cancelScan();
             });
         }
 
         function cancelScan() {
-            if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.stop().then(() => renderDriverState()).catch(() => renderDriverState());
-            } else {
-                renderDriverState();
-            }
+            if (html5QrCode && html5QrCode.isScanning) { html5QrCode.stop().then(renderDriverState).catch(renderDriverState); } 
+            else { renderDriverState(); }
+            document.getElementById('driver-scanning-state').classList.remove('flex');
+            document.getElementById('driver-scanning-state').classList.add('hide');
         }
 
         async function processScanData(rawText) {
-            if (!rawText || !rawText.includes('$')) {
-                showDriverError("รูปแบบ QR Code ไม่ถูกต้อง"); return;
-            }
-
-            document.getElementById('driver-scanning-state').classList.add('hide');
-            const btnTest = document.getElementById('btn-test-scan');
-            if(btnTest) { btnTest.innerHTML = 'กำลังสร้างฐานข้อมูล... <i data-lucide="loader-2" class="animate-spin w-4 h-4 inline"></i>'; btnTest.disabled = true; lucide.createIcons();}
+            if (!rawText || !rawText.includes('$')) return showCustomModal('error', 'ข้อมูลไม่ถูกต้อง', 'รูปแบบ QR Code ไม่ถูกต้อง (ไม่พบ $)');
             
-            const errEl = document.getElementById('driver-error-msg');
-            errEl.innerHTML = "กำลังสร้างฐานข้อมูลในระบบ...<br><span class='text-xs'>(อาจใช้เวลา 2-3 วินาที)</span>";
-            errEl.classList.remove('hide');
-            errEl.className = "text-blue-600 font-bold mb-4 bg-blue-100 px-4 py-2 rounded-lg text-sm text-center";
+            document.getElementById('driver-scanning-state').classList.remove('flex');
+            document.getElementById('driver-scanning-state').classList.add('hide');
             document.getElementById('driver-empty-state').classList.remove('hide');
+            
+            showCustomModal('alert', 'กำลังสร้างงาน', 'กำลังสร้างฐานข้อมูลงานในระบบ<br>กรุณารอสักครู่...');
 
             const parts = rawText.split('$');
             const parsedData = { origin: parts[0], docNo: parts[1], route: parts[2], customers: [] };
@@ -619,7 +921,6 @@
             for(let i=3; i<parts.length; i++) {
                 const token = parts[i].trim();
                 const isOnlyNumbers = /^\d+$/.test(token); 
-                
                 if (!isOnlyNumbers) {
                     if (currentCustomer) parsedData.customers.push(currentCustomer);
                     currentCustomer = { name: token, customerName: token, invoices: [], status: 'pending' };
@@ -630,161 +931,116 @@
             if (currentCustomer) parsedData.customers.push(currentCustomer);
 
             try {
-                const response = await fetch(WEB_APP_URL, {
-                    method: "POST", mode: "cors", headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ action: "initRoute", data: parsedData })
-                });
+                const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "initRoute", data: parsedData }) });
                 const result = await response.json();
-                
-                if(result.status === "success") {
-                    fetchRouteData(parsedData.docNo);
-                } else {
-                    showDriverError("การบันทึกล้มเหลว: " + result.message);
-                    if(btnTest) { btnTest.innerHTML = 'จำลองการสแกนด้วยข้อความ'; btnTest.disabled = false; }
-                }
-            } catch (error) {
-                showDriverError("ไม่สามารถเชื่อมต่อกับฐานข้อมูลได้");
-                if(btnTest) { btnTest.innerHTML = 'จำลองการสแกนด้วยข้อความ'; btnTest.disabled = false; }
-            } 
+                if(result.status === "success") { fetchRouteData(parsedData.docNo); } 
+                else { showCustomModal('error', 'บันทึกล้มเหลว', result.message); }
+            } catch (error) { showCustomModal('error', 'การเชื่อมต่อขัดข้อง', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้'); } 
         }
 
         async function fetchRouteData(docNo) {
             try {
-                const response = await fetch(WEB_APP_URL, {
-                    method: "POST", mode: "cors", headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ action: "getRouteData", docNo: docNo.trim() })
-                });
+                const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getRouteData", docNo: docNo.trim() }) });
                 const result = await response.json();
                 
                 if(result.status === "success") {
                     routeData = result.data;
                     localStorage.setItem('deliveryRouteData', JSON.stringify(routeData));
                     document.getElementById('manual-scan-input').value = ""; 
+                    hideCustomModal();
                     renderDriverState();
-                } else {
-                    showDriverError("ดึงข้อมูลล้มเหลว: " + result.message);
-                }
-            } catch (error) {
-                showDriverError("เชื่อมต่อฐานข้อมูลล้มเหลว");
-            } finally {
-                const btnTest = document.getElementById('btn-test-scan');
-                if(btnTest) { btnTest.innerHTML = 'จำลองการสแกนด้วยข้อความ'; btnTest.disabled = false; }
-            }
+                } else { showCustomModal('error', 'เกิดข้อผิดพลาด', result.message); }
+            } catch (error) { showCustomModal('error', 'การเชื่อมต่อขัดข้อง', 'เชื่อมต่อฐานข้อมูลล้มเหลว'); }
         }
 
-        async function confirmDelivery(index, btnElement) {
+        function confirmDeliveryConfirm(index) {
             const stopData = routeData.stops[index];
-            const customerName = stopData.customerName || stopData.name;
+            const customerName = stopData.customerName || stopData.name || "ไม่ทราบชื่อลูกค้า";
+            showCustomModal('confirm', 'ยืนยันการจัดส่ง', `ส่งมอบสินค้าให้ <b>${customerName}</b> สำเร็จใช่หรือไม่?`, () => executeDelivery(index));
+        }
 
-            if(!confirm(`ยืนยันการส่งมอบสินค้าให้ ${customerName} สำเร็จใช่หรือไม่?`)) return;
-
-            const originalBtnHtml = btnElement.innerHTML;
-            btnElement.innerHTML = 'กำลังบันทึก... <i data-lucide="loader-2" class="animate-spin w-5 h-5 inline"></i>';
-            btnElement.disabled = true;
-            lucide.createIcons();
-
-            const container = document.getElementById('app-container');
-            container.style.opacity = '0.7';
-            container.style.pointerEvents = 'none';
+        async function executeDelivery(index) {
+            const stopData = routeData.stops[index];
+            showCustomModal('alert', 'กำลังบันทึก', 'กำลังอัปเดตสถานะเข้าระบบ...');
+            const container = document.getElementById('app-container'); container.style.pointerEvents = 'none';
 
             try {
-                const response = await fetch(WEB_APP_URL, {
-                    method: "POST", mode: "cors", headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({
-                        action: "updateStatus",
-                        docNo: routeData.docNo,
-                        customerName: customerName,
-                        status: "completed"
-                    })
-                });
-                
+                const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "updateStatus", docNo: routeData.docNo, customerName: stopData.customerName || stopData.name, status: "completed" }) });
                 const result = await response.json();
+                
                 if(result.status === "success") {
                     stopData.status = 'completed';
                     localStorage.setItem('deliveryRouteData', JSON.stringify(routeData));
                     renderDriverState();
-
+                    hideCustomModal();
+                    
                     const allDone = routeData.stops.every(s => s.status === 'completed');
                     if (allDone) {
-                        setTimeout(() => {
-                            alert('🎉 ปิดจ๊อบ! จัดส่งครบทุกจุดแล้ว ระบบจะรีเซ็ตเพื่อรับงานใหม่');
-                            resetDriverJob();
-                        }, 500);
+                        setTimeout(() => { showCustomModal('alert', 'ปิดจ๊อบ 🎉', 'จัดส่งครบทุกจุดแล้ว ระบบจะเคลียร์งานเพื่อรับงานใหม่', () => resetDriverJobRaw()); }, 600);
                     }
-                } else {
-                    alert("เกิดข้อผิดพลาดจากฐานข้อมูล: " + result.message);
-                    btnElement.innerHTML = originalBtnHtml; btnElement.disabled = false;
-                }
-            } catch (error) {
-                alert("เชื่อมต่อฐานข้อมูลล้มเหลว กรุณาตรวจสอบอินเทอร์เน็ต");
-                btnElement.innerHTML = originalBtnHtml; btnElement.disabled = false;
-            } finally {
-                container.style.opacity = '1';
-                container.style.pointerEvents = 'auto';
-                lucide.createIcons();
-            }
+                } else { showCustomModal('error', 'บันทึกล้มเหลว', result.message); }
+            } catch (error) { showCustomModal('error', 'การเชื่อมต่อขัดข้อง', 'เชื่อมต่อฐานข้อมูลล้มเหลว'); } 
+            finally { container.style.pointerEvents = 'auto'; }
         }
 
-        function resetDriverJob() {
-            if(confirm('ต้องการรีเซ็ตเพื่อรับงานใบใหม่หรือไม่?')) {
-                routeData = null;
-                localStorage.removeItem('deliveryRouteData');
-                document.getElementById('driver-error-msg').classList.add('hide');
-                renderDriverState();
-            }
+        function resetDriverJobConfirm() {
+            showCustomModal('confirm', 'รีเซ็ตงาน', 'ต้องการรีเซ็ตเพื่อสแกนใบนำส่งใหม่หรือไม่?', resetDriverJobRaw);
+        }
+        function resetDriverJobRaw() {
+            routeData = null; localStorage.removeItem('deliveryRouteData'); renderDriverState();
         }
 
-        function showDriverError(msg) {
-            document.getElementById('driver-scanning-state').classList.add('hide');
-            document.getElementById('driver-empty-state').classList.remove('hide');
-            const errEl = document.getElementById('driver-error-msg');
-            errEl.innerText = msg;
-            errEl.className = "text-red-500 font-bold mb-4 bg-red-100 px-4 py-2 rounded-lg text-sm text-center";
+        // --- GPS Logic for Driver ---
+        function startGPS() {
+            if (gpsInterval) clearInterval(gpsInterval);
+            sendGPSData(); // ส่งทันที 1 ครั้ง
+            gpsInterval = setInterval(sendGPSData, 15000); // ส่งทุก 15 วิ
+        }
+        function stopGPS() {
+            if (gpsInterval) { clearInterval(gpsInterval); gpsInterval = null; }
+        }
+        function sendGPSData() {
+            if (!routeData || !routeData.docNo || !driverInfo) return;
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const payload = {
+                        action: "updateGPS", docNo: routeData.docNo,
+                        lat: position.coords.latitude, lng: position.coords.longitude,
+                        driverName: driverInfo.name, plate: driverInfo.plate
+                    };
+                    fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) }).catch(e=>console.log('GPS Error'));
+                }, err => console.log('Location access denied'), { enableHighAccuracy: true });
+            }
         }
 
         // -----------------------------------------------------
-        // 5. CUSTOMER LOGIC
+        // CUSTOMER LOGIC
         // -----------------------------------------------------
         function backToCustomerSearch() {
             document.getElementById('customer-search-state').classList.remove('hide');
             document.getElementById('customer-result-state').classList.add('hide');
+            document.getElementById('customer-result-state').classList.remove('flex');
         }
 
         async function searchTracking() {
             const input = document.getElementById('customer-tracking-input').value.trim();
-            if(!input) { alert("กรุณากรอกเลข Invoice"); return; }
+            if(!input) return showCustomModal('alert', 'ข้อมูลไม่ครบ', 'กรุณากรอกเลข Invoice');
             
-            const btn = document.getElementById('btn-search-tracking');
-            const originalHtml = btn.innerHTML;
-            btn.innerHTML = 'กำลังดึงข้อมูล... <i data-lucide="loader-2" class="animate-spin w-5 h-5 inline"></i>';
-            btn.disabled = true;
-            lucide.createIcons();
+            showCustomModal('alert', 'กำลังค้นหา', 'กำลังดึงข้อมูลจากระบบ...');
 
             try {
-                const response = await fetch(WEB_APP_URL, {
-                    method: "POST", mode: "cors", headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ action: "trackInv", invNo: input })
-                });
+                const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "trackInv", invNo: input }) });
                 const result = await response.json();
-                
-                if(result.status === "success") {
-                    renderCustomerResult(result.data);
-                } else {
-                    alert(result.message || "ตรวจสอบหมายเลข Invoice อีกครั้ง");
-                }
-            } catch (error) {
-                alert("การเชื่อมต่อมีปัญหา กรุณาลองใหม่อีกครั้ง");
-            } finally {
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
-                lucide.createIcons();
-            }
+                hideCustomModal();
+                if(result.status === "success") { renderCustomerResult(result.data); } 
+                else { setTimeout(()=>showCustomModal('error', 'ไม่พบข้อมูล', result.message || "ตรวจสอบหมายเลข Invoice อีกครั้ง"), 400); }
+            } catch (error) { hideCustomModal(); setTimeout(()=>showCustomModal('error', 'เชื่อมต่อขัดข้อง', "การเชื่อมต่อมีปัญหา กรุณาลองใหม่อีกครั้ง"), 400); }
         }
 
         function renderCustomerResult(data) {
             const isCompleted = data.status === 'completed';
 
-            document.getElementById('cus-track-no').innerText = "อ้างอิง: " + data.docNo;
+            document.getElementById('cus-track-no').innerText = data.docNo;
             document.getElementById('cus-customer-name').innerText = data.customerName;
             document.getElementById('cus-invoices').innerText = data.invoices;
             document.getElementById('cus-origin-name').innerText = "รับจาก: " + data.origin;
@@ -796,25 +1052,161 @@
             const timestamp = document.getElementById('cus-timestamp');
 
             if (isCompleted) {
-                dot.className = "absolute -left-[9px] top-1 w-4 h-4 rounded-full flex items-center justify-center bg-green-500 ring-4 ring-green-100";
+                dot.className = "absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-green-500 ring-4 ring-green-100 flex items-center justify-center";
                 check.classList.remove('hide');
                 title.className = "text-sm font-bold text-green-600";
-                badge.className = "text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold";
-                badge.innerText = "จัดส่งสำเร็จ";
+                badge.className = "text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold uppercase tracking-wider";
+                badge.innerText = "ส่งสำเร็จ";
                 timestamp.innerText = "เวลาอัปเดต: " + (data.timestamp ? data.timestamp : '-');
+                timestamp.classList.remove('hide');
             } else {
-                dot.className = "absolute -left-[9px] top-1 w-4 h-4 rounded-full flex items-center justify-center bg-gray-200 ring-4 ring-white border-2 border-gray-400";
+                dot.className = "absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-slate-200 ring-4 ring-white border-2 border-slate-400 flex items-center justify-center";
                 check.classList.add('hide');
-                title.className = "text-sm font-bold text-gray-800";
-                badge.className = "text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded font-bold";
-                badge.innerText = "กำลังจัดส่ง";
-                timestamp.innerText = "";
+                title.className = "text-sm font-bold text-slate-800";
+                badge.className = "text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded-full font-bold uppercase tracking-wider";
+                badge.innerText = "รอจัดส่ง";
+                timestamp.classList.add('hide');
             }
 
             document.getElementById('customer-search-state').classList.add('hide');
             document.getElementById('customer-result-state').classList.remove('hide');
             document.getElementById('customer-result-state').classList.add('flex');
             lucide.createIcons();
+        }
+
+        // -----------------------------------------------------
+        // ADMIN DASHBOARD & GPS LOGIC
+        // -----------------------------------------------------
+        function switchAdminTab(tabName) {
+            // Update Nav visual
+            const btnDash = document.getElementById('nav-dashboard');
+            const btnGps = document.getElementById('nav-gps');
+            if(btnDash) btnDash.className = tabName === 'dashboard' ? "w-full flex items-center gap-3 px-4 py-3 bg-blue-600/10 text-blue-400 rounded-xl font-medium transition-colors" : "w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-medium transition-colors";
+            if(btnGps) btnGps.className = tabName === 'gps' ? "w-full flex items-center gap-3 px-4 py-3 bg-blue-600/10 text-blue-400 rounded-xl font-medium transition-colors" : "w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-medium transition-colors";
+            
+            // Toggle Views
+            if(tabName === 'dashboard') {
+                document.getElementById('admin-tab-dashboard').classList.remove('hide');
+                document.getElementById('admin-tab-gps').classList.add('hide');
+                document.getElementById('admin-page-title').innerHTML = '<i data-lucide="layout-dashboard" class="w-5 h-5 text-slate-400"></i> ภาพรวม';
+                stopAdminGPS();
+                fetchDashboardData();
+            } else if (tabName === 'gps') {
+                document.getElementById('admin-tab-dashboard').classList.add('hide');
+                document.getElementById('admin-tab-gps').classList.remove('hide');
+                document.getElementById('admin-page-title').innerHTML = '<i data-lucide="map" class="w-5 h-5 text-slate-400"></i> GPS Tracking';
+                setTimeout(initAdminMap, 100);
+            }
+            lucide.createIcons();
+        }
+
+        function startAdminClock() {
+            if(adminClockInterval) clearInterval(adminClockInterval);
+            const clockEl = document.getElementById('admin-clock');
+            adminClockInterval = setInterval(() => {
+                const now = new Date();
+                clockEl.innerText = now.toLocaleTimeString('th-TH');
+            }, 1000);
+        }
+
+        // --- Mock Fetch for Dashboard (Simulates loading data) ---
+        async function fetchDashboardData() {
+            // In a real app, this would fetch from GAS. Here we just mock the update.
+            document.getElementById('dash-table-body').style.opacity = '0.5';
+            setTimeout(() => {
+                document.getElementById('dash-moving').innerText = Math.floor(Math.random() * 5) + 1; // Random 1-5 cars
+                document.getElementById('dash-table-body').style.opacity = '1';
+            }, 800);
+        }
+
+        // --- Admin GPS Map ---
+        function initAdminMap() {
+            if(!mapInstance) {
+                mapInstance = L.map('real-map-container', { zoomControl: false }).setView([13.65, 100.65], 10);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; OpenStreetMap', subdomains: 'abcd', maxZoom: 20
+                }).addTo(mapInstance);
+                L.control.zoom({ position: 'bottomright' }).addTo(mapInstance);
+            }
+            mapInstance.invalidateSize();
+            startAdminGPS();
+        }
+
+        function startAdminGPS() {
+            fetchFleetGPS();
+            if(!adminGpsInterval) adminGpsInterval = setInterval(fetchFleetGPS, 10000);
+        }
+        function stopAdminGPS() {
+            if(adminGpsInterval) { clearInterval(adminGpsInterval); adminGpsInterval = null; }
+        }
+
+        async function fetchFleetGPS() {
+            try {
+                const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getFleetGPS" }) });
+                const result = await response.json();
+                if(result.status === "success") { updateAdminMap(result.data); }
+            } catch(e) { console.log('Error fetching fleet GPS', e); }
+        }
+
+        function updateAdminMap(fleetData) {
+            document.getElementById('gps-update-time').innerText = new Date().toLocaleTimeString('th-TH');
+            
+            // Clear old markers
+            if(mapInstance && mapInstance.markers) { mapInstance.markers.forEach(m => m.remove()); }
+            mapInstance.markers = [];
+            
+            const fleetList = document.getElementById('admin-fleet-list');
+            fleetList.innerHTML = '';
+
+            if(!fleetData || fleetData.length === 0) {
+                fleetList.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-slate-500 opacity-50 space-y-3 pt-10"><i data-lucide="radar" class="w-10 h-10 animate-pulse"></i><p class="text-sm">ยังไม่มีรถที่กำลังวิ่งงานในระบบ</p></div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            const bounds = L.latLngBounds();
+
+            fleetData.forEach(truck => {
+                const lat = parseFloat(truck.lat); const lng = parseFloat(truck.lng);
+                if(isNaN(lat) || isNaN(lng)) return;
+                
+                bounds.extend([lat, lng]);
+
+                const customIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white border-2 border-slate-900 shadow-[0_0_15px_rgba(59,130,246,0.8)] relative">
+                            <div class="absolute inset-0 rounded-full border border-blue-400 animate-ping"></div>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5"/><path d="M14 17h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+                           </div>`,
+                    iconSize: [40, 40], iconAnchor: [20, 20], popupAnchor: [0, -20]
+                });
+
+                const marker = L.marker([lat, lng], { icon: customIcon }).addTo(mapInstance)
+                    .bindPopup(`<div class="text-center font-sans">
+                        <strong class="text-sm text-slate-800">${truck.plate}</strong><br/>
+                        <span class="text-xs text-slate-500">${truck.driverName}</span><br/>
+                        <span class="text-xs text-blue-600 font-bold mt-1 inline-block">Doc: ${truck.docNo}</span>
+                    </div>`);
+                
+                mapInstance.markers.push(marker);
+
+                fleetList.innerHTML += `
+                    <div class="p-3 mb-2 rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-800 cursor-pointer transition-colors" onclick="mapInstance.setView([${lat}, ${lng}], 15)">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="font-bold text-sm text-white">${truck.plate}</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded border border-blue-500/30 bg-blue-500/10 text-blue-400">กำลังวิ่ง</span>
+                        </div>
+                        <p class="text-xs text-slate-400">${truck.driverName}</p>
+                        <div class="mt-2 text-[10px] text-slate-500 flex items-center justify-between">
+                            <span class="truncate pr-2">Doc: ${truck.docNo}</span>
+                            <span class="shrink-0 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${truck.timestamp.split(' ')[1]}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            lucide.createIcons();
+            if(mapInstance.markers.length > 0) mapInstance.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
         }
     </script>
 </body>
