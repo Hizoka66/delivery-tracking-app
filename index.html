@@ -158,7 +158,6 @@
                     <p id="driver-header-name" class="text-xs text-slate-400"></p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <div id="gps-indicator" class="w-2 h-2 rounded-full bg-green-500 animate-pulse hide" title="กำลังส่ง GPS"></div>
                     <button onclick="handleLogout()" class="text-slate-300 hover:text-white p-2"><i data-lucide="log-out" class="w-5 h-5"></i></button>
                 </div>
             </header>
@@ -313,7 +312,6 @@
         let currentPin = "";
         
         let html5QrCode = null; 
-        let gpsWatchId = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
@@ -346,7 +344,6 @@
                 localStorage.removeItem('deliveryAppRole');
                 localStorage.removeItem('deliveryDriverInfo');
                 if(html5QrCode && html5QrCode.isScanning) html5QrCode.stop().catch(e => console.error(e));
-                stopDriverGPS();
                 updateAppView();
             }
         }
@@ -375,9 +372,6 @@
                         document.getElementById('view-driver').classList.add('flex');
                         document.getElementById('driver-header-name').innerText = driverInfo.name + " (" + driverInfo.plate + ")";
                         renderDriverState();
-                        
-                        // เปิดส่ง GPS ทันทีที่เข้าหน้างานและปลดล็อกแล้ว
-                        startDriverGPS();
                     } else {
                         // ถ้ายังมีข้อมูลแต่เพิ่งเปิดแอปใหม่ -> โชว์หน้าจอใส่ PIN
                         document.getElementById('pin-lock-name').innerText = "สวัสดี, " + driverInfo.name;
@@ -523,7 +517,7 @@
         }
 
         // -----------------------------------------------------
-        // 4. DRIVER LOGIC & GPS
+        // 4. DRIVER LOGIC
         // -----------------------------------------------------
         function renderDriverState() {
             document.getElementById('driver-empty-state').classList.add('hide');
@@ -574,53 +568,6 @@
             } else {
                 document.getElementById('driver-empty-state').classList.remove('hide');
             }
-        }
-
-        // --- ระบบส่ง GPS อัตโนมัติ ---
-        let lastGpsSendTime = 0;
-        function startDriverGPS() {
-            if ("geolocation" in navigator && !gpsWatchId) {
-                // ขออนุญาตและเริ่มติดตามตำแหน่ง
-                gpsWatchId = navigator.geolocation.watchPosition(
-                    (position) => {
-                        document.getElementById('gps-indicator').classList.remove('hide'); 
-                        sendGPSToServer(position.coords.latitude, position.coords.longitude);
-                    },
-                    (error) => { console.warn("GPS Error", error); },
-                    { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
-                );
-            }
-        }
-
-        function stopDriverGPS() {
-            if (gpsWatchId) {
-                navigator.geolocation.clearWatch(gpsWatchId);
-                gpsWatchId = null;
-                document.getElementById('gps-indicator').classList.add('hide');
-            }
-        }
-
-        function sendGPSToServer(lat, lng) {
-            const now = Date.now();
-            if (now - lastGpsSendTime < 15000) return; // ควบคุมให้ยิง 1 ครั้ง ทุกๆ 15 วินาที
-            if (!driverInfo) return; 
-            
-            // ถ้าไม่มีงานก็ส่งเลขว่างๆ ไป แอดมินจะได้ยังเห็นรถจอดอยู่
-            const docNo = routeData ? routeData.docNo : "-"; 
-            
-            lastGpsSendTime = now;
-
-            fetch(WEB_APP_URL, {
-                method: "POST", mode: "no-cors", 
-                body: JSON.stringify({ 
-                    action: "updateGPS", 
-                    docNo: docNo, 
-                    lat: lat, 
-                    lng: lng,
-                    driverName: driverInfo.name, 
-                    plate: driverInfo.plate      
-                })
-            }).catch(e => console.log("GPS Sync error"));
         }
 
         // --- ระบบสแกน QR ---
@@ -714,12 +661,6 @@
                     localStorage.setItem('deliveryRouteData', JSON.stringify(routeData));
                     document.getElementById('manual-scan-input').value = ""; 
                     renderDriverState();
-                    
-                    // บังคับยิง GPS ทันทีที่รับงานใหม่
-                    lastGpsSendTime = 0; 
-                    if(navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(p => sendGPSToServer(p.coords.latitude, p.coords.longitude));
-                    }
                 } else {
                     showDriverError("ดึงข้อมูลล้มเหลว: " + result.message);
                 }
