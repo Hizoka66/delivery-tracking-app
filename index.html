@@ -284,6 +284,16 @@
                         <h2 class="text-2xl font-bold relative z-10 text-blue-400 mb-1" id="cus-customer-name"></h2>
                         <p class="text-slate-400 text-sm relative z-10 flex items-center gap-2"><i data-lucide="file" class="w-4 h-4"></i> Ref: <span id="cus-track-no" class="font-mono text-white"></span></p>
                         <p class="text-slate-400 text-sm relative z-10 flex items-center gap-2 mt-1"><i data-lucide="layers" class="w-4 h-4"></i> Inv: <span id="cus-invoices" class="font-mono text-white"></span></p>
+                        
+                        <div class="flex gap-4 mt-3">
+                            <p class="text-slate-400 text-sm relative z-10 flex items-center gap-1.5"><i data-lucide="user-square-2" class="w-4 h-4 text-blue-400"></i> รหัส: <span id="cus-customer-id" class="font-mono text-white font-bold">-</span></p>
+                            <p class="text-slate-400 text-sm relative z-10 flex items-center gap-1.5"><i data-lucide="route" class="w-4 h-4 text-green-400"></i> สายวิ่ง: <span id="cus-customer-route" class="font-mono text-white font-bold">-</span></p>
+                        </div>
+
+                        <div class="flex justify-between items-end relative z-10 mt-6 pt-4 border-t border-slate-700">
+                            <div><p class="text-slate-400 text-xs mb-1 uppercase tracking-widest">ระยะทาง</p><div class="flex items-baseline gap-1"><span id="cus-distance" class="text-3xl font-bold text-white">-</span><span class="text-sm text-slate-300">กม.</span></div></div>
+                            <div class="text-right"><p class="text-slate-400 text-xs mb-1 uppercase tracking-widest">ถึงภายใน (ETA)</p><div class="flex items-baseline justify-end gap-1 text-yellow-400"><i data-lucide="clock" class="w-4 h-4"></i><span id="cus-eta" class="text-2xl font-bold">-</span><span class="text-xs">นาที</span></div></div>
+                        </div>
                     </div>
                     
                     <div class="bg-white mx-4 -mt-6 relative z-20 rounded-2xl shadow-xl p-6 border border-slate-100">
@@ -479,6 +489,20 @@
     </div>
 
     <script>
+        // ฟังก์ชันคำนวณระยะทาง Haversine Formula (กิโลเมตร)
+        function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+            if(!lat1 || !lon1 || !lat2 || !lon2) return null;
+            var R = 6371; 
+            var dLat = (lat2-lat1) * (Math.PI/180);
+            var dLon = (lon2-lon1) * (Math.PI/180);
+            var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1 * (Math.PI/180)) * Math.cos(lat2 * (Math.PI/180)) *
+                    Math.sin(dLon/2) * Math.sin(dLon/2);
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            var d = R * c; 
+            return d.toFixed(1);
+        }
+
         // Custom Modal Functions
         function showCustomModal(type, title, message, onConfirm = null) {
             const modal = document.getElementById('custom-modal'); const box = document.getElementById('custom-modal-box');
@@ -699,8 +723,15 @@
                     let statusClasses = isDone ? 'border-green-500 opacity-60 bg-slate-50' : 'border-blue-500 bg-white ring-1 ring-blue-200 shadow-md';
                     let numClasses = isDone ? 'bg-green-500 text-white' : 'bg-blue-600 text-white shadow-md';
                     let invBadges = stop.invoices.map(inv => `<span class="bg-slate-100 text-slate-700 px-2 py-1 rounded font-mono text-xs border border-slate-200">${inv}</span>`).join('');
+                    
+                    // ป้ายบอกสถานะพิกัดของลูกค้า
+                    let distBadge = (stop.lat && stop.lng) 
+                        ? `<span id="dist-${index}" class="text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded flex items-center gap-1 text-[10px]"><i data-lucide="map-pin" class="w-3 h-3"></i> รอพิกัด GPS...</span>` 
+                        : `<span class="text-slate-400 font-bold bg-slate-100 px-2 py-1 rounded flex items-center gap-1 text-[10px]"><i data-lucide="map-pin" class="w-3 h-3"></i> ไม่มีพิกัดในระบบ</span>`;
+
                     let btnHtml = isDone ? '' : `<div class="mt-4 pt-3 border-t border-slate-100 relative z-10"><button onclick="confirmDeliveryConfirm(${index})" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-95 cursor-pointer"><i data-lucide="check-circle-2" class="w-5 h-5 pointer-events-none"></i> ยืนยันส่งมอบให้ลูกค้านี้</button></div>`;
-                    list.innerHTML += `<div class="rounded-xl border-l-4 overflow-hidden ${statusClasses} transition-all"><div class="p-4"><div class="flex items-start gap-3 mb-2"><div class="w-7 h-7 rounded-full flex shrink-0 items-center justify-center text-xs font-bold ${numClasses}">${index + 1}</div><div class="flex-grow"><h3 class="font-bold text-slate-800 leading-tight">${displayCustomerName}</h3><div class="flex flex-wrap gap-1 mt-2">${invBadges}</div></div>${isDone ? '<i data-lucide="check-circle-2" class="text-green-500 w-6 h-6 shrink-0"></i>' : ''}</div>${btnHtml}</div></div>`;
+                    
+                    list.innerHTML += `<div class="rounded-xl border-l-4 overflow-hidden ${statusClasses} transition-all"><div class="p-4"><div class="flex items-start gap-3 mb-2"><div class="w-7 h-7 rounded-full flex shrink-0 items-center justify-center text-xs font-bold ${numClasses}">${index + 1}</div><div class="flex-grow"><h3 class="font-bold text-slate-800 leading-tight">${displayCustomerName}</h3><div class="flex flex-wrap items-center gap-2 mt-2"><div class="flex flex-wrap gap-1">${invBadges}</div>${distBadge}</div></div>${isDone ? '<i data-lucide="check-circle-2" class="text-green-500 w-6 h-6 shrink-0"></i>' : ''}</div>${btnHtml}</div></div>`;
                 });
                 lucide.createIcons();
             } else { document.getElementById('driver-empty-state').classList.remove('hide'); }
@@ -775,19 +806,36 @@
         function resetDriverJobConfirm() { showCustomModal('confirm', 'รีเซ็ตงาน', 'ต้องการรีเซ็ตเพื่อสแกนใบนำส่งใหม่หรือไม่?', resetDriverJobRaw); }
         function resetDriverJobRaw() { routeData = null; localStorage.removeItem('deliveryRouteData'); renderDriverState(); }
 
+        // ส่ง GPS คนขับ + อัปเดตระยะทางในหน้าคนขับ
         function startGPS() { if (gpsInterval) clearInterval(gpsInterval); sendGPSData(); gpsInterval = setInterval(sendGPSData, 15000); }
         function stopGPS() { if (gpsInterval) { clearInterval(gpsInterval); gpsInterval = null; } }
         function sendGPSData() {
             if (!routeData || !routeData.docNo || !driverInfo) return;
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(position => {
-                    const payload = { action: "updateGPS", docNo: routeData.docNo, lat: position.coords.latitude, lng: position.coords.longitude, driverName: driverInfo.name, plate: driverInfo.plate };
+                    const currentLat = position.coords.latitude;
+                    const currentLng = position.coords.longitude;
+                    
+                    // คำนวณระยะทางและอัปเดตหน้าจอคนขับ
+                    routeData.stops.forEach((stop, index) => {
+                        if (stop.lat && stop.lng && stop.status !== 'completed') {
+                            const dist = getDistanceFromLatLonInKm(currentLat, currentLng, parseFloat(stop.lat), parseFloat(stop.lng));
+                            const distEl = document.getElementById('dist-' + index);
+                            if (distEl) {
+                                distEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> ห่าง ${dist} กม.`;
+                            }
+                        }
+                    });
+
+                    // ยิง GPS ไปเก็บใน Database
+                    const payload = { action: "updateGPS", docNo: routeData.docNo, lat: currentLat, lng: currentLng, driverName: driverInfo.name, plate: driverInfo.plate };
                     fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) }).catch(e=>console.log('GPS Error'));
                 }, err => console.log('Location access denied'), { enableHighAccuracy: true });
             }
         }
 
         function backToCustomerSearch() { document.getElementById('customer-search-state').classList.remove('hide'); document.getElementById('customer-result-state').classList.add('hide'); document.getElementById('customer-result-state').classList.remove('flex'); }
+        
         async function searchTracking() {
             const input = document.getElementById('customer-tracking-input').value.trim();
             if(!input) return showCustomModal('alert', 'ข้อมูลไม่ครบ', 'กรุณากรอกเลข Invoice');
@@ -800,10 +848,29 @@
             } catch (error) { hideCustomModal(); setTimeout(()=>showCustomModal('error', 'เชื่อมต่อขัดข้อง', "การเชื่อมต่อมีปัญหา กรุณาลองใหม่อีกครั้ง"), 400); }
         }
 
+        // แสดงผลลัพธ์ให้ลูกค้า พร้อมคำนวณระยะทาง
         function renderCustomerResult(data) {
             const isCompleted = data.status === 'completed';
             document.getElementById('cus-track-no').innerText = data.docNo; document.getElementById('cus-customer-name').innerText = data.customerName; document.getElementById('cus-invoices').innerText = data.invoices; document.getElementById('cus-origin-name').innerText = "รับจาก: " + data.origin;
+            
+            document.getElementById('cus-customer-id').innerText = data.customerID || "-";
+            document.getElementById('cus-customer-route').innerText = data.customerRoute || "-";
+
             const dot = document.getElementById('cus-dest-dot'); const check = document.getElementById('cus-dest-check'); const title = document.getElementById('cus-dest-title'); const badge = document.getElementById('cus-badge'); const timestamp = document.getElementById('cus-timestamp');
+            
+            // คำนวณระยะทางระหว่างลูกค้าและพขร.
+            if (data.custLat && data.custLng && data.driverLat && data.driverLng && !isCompleted) {
+                const distKm = getDistanceFromLatLonInKm(data.driverLat, data.driverLng, data.custLat, data.custLng);
+                document.getElementById('cus-distance').innerText = distKm;
+                document.getElementById('cus-eta').innerText = Math.ceil((distKm / 40) * 60); // สมมติความเร็วเฉลี่ย 40 กม./ชม.
+            } else if (isCompleted) {
+                document.getElementById('cus-distance').innerText = "0";
+                document.getElementById('cus-eta').innerText = "0";
+            } else {
+                document.getElementById('cus-distance').innerText = "-";
+                document.getElementById('cus-eta').innerText = "-";
+            }
+
             if (isCompleted) {
                 dot.className = "absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-green-500 ring-4 ring-green-100 flex items-center justify-center"; check.classList.remove('hide'); title.className = "text-sm font-bold text-green-600"; badge.className = "text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold uppercase tracking-wider"; badge.innerText = "ส่งสำเร็จ"; timestamp.innerText = "เวลาอัปเดต: " + (data.timestamp ? data.timestamp : '-'); timestamp.classList.remove('hide');
             } else {
