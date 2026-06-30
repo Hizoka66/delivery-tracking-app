@@ -373,10 +373,24 @@
 
         // ฟังก์ชันคำนวณระยะทาง Haversine Formula (กิโลเมตร)
         function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-            if(!lat1 || !lon1 || !lat2 || !lon2) return null;
-            var R = 6371; var dLat = (lat2-lat1) * (Math.PI/180); var dLon = (lon2-lon1) * (Math.PI/180);
-            var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * (Math.PI/180)) * Math.cos(lat2 * (Math.PI/180)) * Math.sin(dLon/2) * Math.sin(dLon/2);
-            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return (R * c).toFixed(1);
+            // ตรวจสอบค่าพิกัดให้แน่ใจว่าไม่เป็นค่าที่ผิดพลาด
+            if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+            
+            const lat1Num = parseFloat(lat1);
+            const lon1Num = parseFloat(lon1);
+            const lat2Num = parseFloat(lat2);
+            const lon2Num = parseFloat(lon2);
+
+            // ถ้าพิกัดที่ดึงมาแปลงเป็นตัวเลขไม่ได้ ให้คืนค่า null เพื่อไม่ให้ขึ้น NaN
+            if (isNaN(lat1Num) || isNaN(lon1Num) || isNaN(lat2Num) || isNaN(lon2Num)) return null;
+
+            var R = 6371; // รัศมีโลกในหน่วยกิโลเมตร
+            var dLat = (lat2Num - lat1Num) * (Math.PI/180); 
+            var dLon = (lon2Num - lon1Num) * (Math.PI/180);
+            var a = Math.sin(dLat/2) * Math.sin(dLat/2) + 
+                    Math.cos(lat1Num * (Math.PI/180)) * Math.cos(lat2Num * (Math.PI/180)) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+            return (R * c).toFixed(1);
         }
 
         // Custom Modal Functions
@@ -654,7 +668,7 @@
                         if (stop.lat && stop.lng && stop.status !== 'completed') {
                             const dist = getDistanceFromLatLonInKm(currentLat, currentLng, parseFloat(stop.lat), parseFloat(stop.lng));
                             const distEl = document.getElementById('dist-' + index);
-                            if (distEl) { distEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> ห่าง ${dist} กม.`; }
+                            if (distEl && dist !== null) { distEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> ห่าง ${dist} กม.`; }
                         }
                     });
                     const payload = { action: "updateGPS", docNo: routeData.docNo, lat: currentLat, lng: currentLng, driverName: driverInfo.name, plate: driverInfo.plate };
@@ -684,8 +698,10 @@
 
             const dot = document.getElementById('cus-dest-dot'); const check = document.getElementById('cus-dest-check'); const title = document.getElementById('cus-dest-title'); const badge = document.getElementById('cus-badge'); const timestamp = document.getElementById('cus-timestamp');
             
-            if (data.custLat && data.custLng && data.driverLat && data.driverLng && !isCompleted) {
-                const distKm = getDistanceFromLatLonInKm(data.driverLat, data.driverLng, data.custLat, data.custLng);
+            // คำนวณระยะทางและตรวจเช็ค NaN
+            const distKm = getDistanceFromLatLonInKm(data.driverLat, data.driverLng, data.custLat, data.custLng);
+            
+            if (distKm !== null && !isCompleted) {
                 document.getElementById('cus-distance').innerText = distKm;
                 document.getElementById('cus-eta').innerText = Math.ceil((distKm / 40) * 60); 
             } else if (isCompleted) {
