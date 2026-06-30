@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Delivery Tracking App</title>
+    <title>NPT Delivery Tracking</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0f172a">
+    
+    <!-- เปลี่ยนไอคอนแอปเป็นรูปโลโก้ของคุณ -->
     <link id="manifest-link" rel="manifest" href="">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2769/2769339.png">
+    <link rel="apple-touch-icon" href="./logo.png">
 
     <!-- CSS & JS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -57,7 +59,6 @@
         }
         .pin-btn:active { background-color: rgba(255, 255, 255, 0.2); transform: scale(0.9); }
 
-        /* Scrollbar styling for Admin Dashboard */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
@@ -66,7 +67,6 @@
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center bg-slate-900">
 
-    <!-- Custom Modal System (Replaces alert and confirm) -->
     <div id="custom-modal" class="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center hide opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-[90%] mx-4 shadow-2xl transform scale-95 transition-transform duration-300" id="custom-modal-box">
             <div id="modal-icon-container" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-blue-100 text-blue-600">
@@ -74,9 +74,7 @@
             </div>
             <h3 id="modal-title" class="text-xl font-bold text-center text-slate-800 mb-2">แจ้งเตือน</h3>
             <p id="modal-message" class="text-slate-600 text-center mb-6 text-sm"></p>
-            <div id="modal-buttons" class="flex gap-3 justify-center">
-                <!-- Buttons injected via JS -->
-            </div>
+            <div id="modal-buttons" class="flex gap-3 justify-center"></div>
         </div>
     </div>
 
@@ -89,10 +87,12 @@
                     <i data-lucide="download" class="w-4 h-4"></i> ติดตั้งแอป
                 </button>
 
-                <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i data-lucide="truck" class="text-blue-600 w-10 h-10"></i>
+                <!-- เปลี่ยนเป็นโชว์รูป Logo แทนไอคอนรถ -->
+                <div class="w-32 h-32 mx-auto mb-6 rounded-2xl overflow-hidden shadow-md border-2 border-slate-100">
+                    <img src="./logo.png" alt="NPT Logo" class="w-full h-full object-cover">
                 </div>
-                <h1 class="text-2xl font-bold text-slate-800 mb-2">DeliTrack</h1>
+                
+                <h1 class="text-2xl font-bold text-slate-800 mb-2">NPT DeliTrack</h1>
                 <p class="text-slate-500 mb-8 text-sm">เลือกระบบที่คุณต้องการเข้าใช้งาน</p>
                 
                 <div class="space-y-3">
@@ -121,14 +121,12 @@
                     <button id="tab-register" onclick="switchAuthTab('register')" class="flex-1 py-3 text-center font-bold text-slate-400 border-b-2 border-transparent transition-all">ลงทะเบียนใหม่</button>
                 </div>
 
-                <!-- Login -->
                 <div id="form-login" class="space-y-4">
                     <div><label class="text-sm font-bold text-slate-600">เบอร์โทรศัพท์</label><input type="tel" id="login-phone" class="w-full mt-1 p-3 border rounded-xl outline-none focus:border-blue-500 bg-slate-50" placeholder="08X-XXX-XXXX"></div>
                     <div><label class="text-sm font-bold text-slate-600">รหัสผ่าน (PIN 6 หลัก)</label><input type="password" id="login-pass" class="w-full mt-1 p-3 border rounded-xl outline-none focus:border-blue-500 bg-slate-50 text-center tracking-[1em]" placeholder="••••••" maxlength="6"></div>
                     <button id="btn-login" onclick="submitAuth('login')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl mt-4 flex justify-center items-center gap-2 shadow-md transition-colors">เข้าสู่ระบบ</button>
                 </div>
 
-                <!-- Register -->
                 <div id="form-register" class="space-y-3 hide">
                     <div><label class="text-xs font-bold text-slate-600">ชื่อ-นามสกุล</label><input type="text" id="reg-name" class="w-full mt-1 p-2 border rounded-lg outline-none focus:border-blue-500 bg-slate-50"></div>
                     <div><label class="text-xs font-bold text-slate-600">ทะเบียนรถ</label><input type="text" id="reg-plate" class="w-full mt-1 p-2 border rounded-lg outline-none focus:border-blue-500 bg-slate-50" placeholder="1กข 1234 กทม"></div>
@@ -145,8 +143,9 @@
                 <button onclick="handleLogoutConfirm()" class="text-slate-400 hover:text-white text-sm font-bold flex items-center gap-1"><i data-lucide="user-minus" class="w-4 h-4"></i> สลับบัญชี</button>
             </div>
             <div class="flex-col items-center justify-center text-center mt-8">
-                <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-slate-700 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-                    <i data-lucide="user" class="text-blue-400 w-10 h-10"></i>
+                <!-- โชว์โลโก้ตอนล็อกหน้าจอด้วย -->
+                <div class="w-20 h-20 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-700 shadow-[0_0_15px_rgba(59,130,246,0.2)] overflow-hidden p-1">
+                    <img src="./logo.png" alt="Logo" class="w-full h-full object-cover rounded-xl">
                 </div>
                 <h2 class="text-white text-xl font-bold mb-1" id="pin-lock-name">สวัสดี</h2>
                 <p class="text-slate-400 text-sm">กรุณาใส่รหัส PIN 6 หลัก</p>
@@ -160,7 +159,6 @@
                 </div>
                 <p id="pin-error-msg" class="text-red-400 text-sm font-bold h-5"></p>
             </div>
-            <!-- Numpad -->
             <div class="grid grid-cols-3 gap-y-6 gap-x-8 max-w-[280px] mx-auto text-white pb-10">
                 <button onclick="pressPin('1')" class="pin-btn hover:bg-white/10">1</button>
                 <button onclick="pressPin('2')" class="pin-btn hover:bg-white/10">2</button>
@@ -184,28 +182,28 @@
                 <p class="text-slate-400 text-sm mb-10">กรุณาวางใบหน้าให้อยู่ในกรอบ</p>
                 
                 <div class="relative w-64 h-80 mx-auto rounded-[100px] overflow-hidden border-4 border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.5)] animate-pulse-ring">
-                    <!-- Placeholder video for simulation -->
                     <video id="kyc-video" class="w-full h-full object-cover bg-slate-800" autoplay playsinline muted></video>
-                    <!-- Overlay Grid -->
                     <div class="absolute inset-0 border-[20px] border-slate-900/60 rounded-[100px] pointer-events-none"></div>
-                    <!-- Scanning line -->
                     <div class="absolute top-0 left-0 w-full h-1 bg-green-400 shadow-[0_0_15px_3px_#4ade80] animate-scan"></div>
                 </div>
 
                 <div class="mt-10">
                     <p id="kyc-status-text" class="text-blue-400 font-bold animate-pulse text-lg tracking-wider">กำลังตรวจสอบเค้าโครงหน้า...</p>
                 </div>
-                <!-- Hidden button to skip KYC if camera fails -->
                 <button onclick="finishKYC()" class="mt-8 text-slate-600 text-xs underline">ข้ามการแสกนหน้า (โหมดทดสอบ)</button>
             </div>
         </div>
 
         <!-- ==================== VIEW 1: DRIVER (WORK APP) ==================== -->
         <div id="view-driver" class="flex-col h-full bg-slate-50 overflow-hidden relative hide">
-            <header class="bg-slate-900 text-white p-4 shadow-md flex justify-between items-center z-20">
-                <div>
-                    <h1 class="font-bold text-lg flex items-center gap-2"><i data-lucide="truck" class="w-5 h-5 text-blue-400"></i> Driver App</h1>
-                    <p id="driver-header-name" class="text-xs text-slate-400"></p>
+            <header class="bg-slate-900 text-white p-4 shadow-md flex justify-between items-center z-20 shrink-0">
+                <div class="flex items-center gap-2">
+                    <img src="./logo.png" class="w-8 h-8 rounded bg-white p-0.5">
+                    <div>
+                        <h1 class="font-bold text-sm leading-tight" id="driver-profile-name">พนักงานขับรถ</h1>
+                        <p class="text-xs text-slate-400" id="driver-profile-plate">ทะเบียน: -</p>
+                    </div>
+                    <div id="gps-indicator" class="w-2 h-2 rounded-full bg-green-500 animate-pulse hide ml-2" title="กำลังส่ง GPS"></div>
                 </div>
                 <button onclick="handleLogoutConfirm()" class="p-2 bg-slate-800 rounded-full hover:bg-slate-700 transition-colors"><i data-lucide="log-out" class="w-4 h-4"></i></button>
             </header>
@@ -261,7 +259,7 @@
         <!-- ==================== VIEW 2: CUSTOMER ==================== -->
         <div id="view-customer" class="flex-col h-full bg-slate-50 hide">
             <header class="bg-white p-4 shadow-sm flex items-center justify-between z-10 sticky top-0">
-                <div class="flex items-center gap-2 text-blue-900"><i data-lucide="package-search" class="w-6 h-6 text-blue-600"></i><h1 class="text-lg font-bold">ค้นหาพัสดุ</h1></div>
+                <div class="flex items-center gap-2 text-blue-900"><img src="./logo.png" class="w-8 h-8 rounded"><h1 class="text-lg font-bold">ค้นหาพัสดุ</h1></div>
                 <button onclick="backToMain()" class="text-slate-400 hover:text-slate-600 p-2"><i data-lucide="x" class="w-5 h-5"></i></button>
             </header>
             
@@ -314,7 +312,7 @@
                 <!-- Sidebar -->
                 <aside class="w-64 bg-[#1e293b] border-r border-slate-800 flex flex-col hidden md:flex shrink-0">
                     <div class="p-6 border-b border-slate-800 flex items-center gap-3">
-                        <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white"><i data-lucide="box" class="w-5 h-5"></i></div>
+                        <img src="./logo.png" class="w-8 h-8 rounded bg-white p-0.5">
                         <div><h1 class="font-bold text-white tracking-wide">DeliTrack</h1><p class="text-[10px] text-slate-400 font-mono">v1.0 PROTOTYPE</p></div>
                     </div>
                     <nav class="flex-grow p-4 space-y-1">
@@ -341,9 +339,9 @@
                     </div>
                 </aside>
 
-                <!-- Mobile Header -->
+                <!-- Mobile Header Admin -->
                 <div class="md:hidden flex items-center justify-between p-4 bg-[#1e293b] border-b border-slate-800 w-full absolute top-0 z-50">
-                    <div class="flex items-center gap-2"><div class="w-6 h-6 bg-blue-600 rounded flex items-center justify-center text-white"><i data-lucide="box" class="w-3 h-3"></i></div><h1 class="font-bold text-white">DeliTrack Admin</h1></div>
+                    <div class="flex items-center gap-2"><img src="./logo.png" class="w-6 h-6 rounded"><h1 class="font-bold text-white">DeliTrack Admin</h1></div>
                     <div class="flex gap-2">
                         <button onclick="switchAdminTab('dashboard')" class="p-2 text-slate-300"><i data-lucide="layout-dashboard" class="w-5 h-5"></i></button>
                         <button onclick="switchAdminTab('gps')" class="p-2 text-slate-300"><i data-lucide="map" class="w-5 h-5"></i></button>
@@ -354,18 +352,15 @@
                 <!-- Main Content Area -->
                 <main class="flex-grow flex flex-col h-full overflow-hidden pt-14 md:pt-0">
                     
-                    <!-- Top Bar -->
                     <header class="h-16 border-b border-slate-800 bg-[#0f172a] flex items-center justify-between px-8 shrink-0 hidden md:flex">
                         <h2 id="admin-page-title" class="text-white font-bold flex items-center gap-2"><i data-lucide="layout-dashboard" class="w-5 h-5 text-slate-400"></i> ภาพรวม</h2>
                         <div class="flex items-center gap-4">
                             <div class="px-3 py-1 bg-slate-800 rounded text-slate-300 font-mono text-sm border border-slate-700" id="admin-clock">00:00:00</div>
-                            <button class="p-2 text-slate-400 hover:text-white border border-slate-800 rounded bg-slate-800/50"><i data-lucide="maximize" class="w-4 h-4"></i></button>
                         </div>
                     </header>
 
                     <!-- TAB 1: Dashboard -->
                     <div id="admin-tab-dashboard" class="flex-grow p-4 md:p-8 overflow-y-auto space-y-6">
-                        <!-- Stat Cards -->
                         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
                             <div class="bg-[#1e293b] p-5 rounded-xl border border-slate-800 relative overflow-hidden group">
                                 <div class="absolute right-0 top-0 w-24 h-24 bg-blue-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
@@ -393,9 +388,7 @@
                             </div>
                         </div>
 
-                        <!-- Main Grid -->
                         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                            <!-- Table -->
                             <div class="xl:col-span-2 bg-[#1e293b] rounded-xl border border-slate-800 overflow-hidden flex flex-col">
                                 <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-800/30">
                                     <h3 class="text-white font-bold flex items-center gap-2"><i data-lucide="list" class="w-4 h-4 text-blue-400"></i> งานส่งทั้งหมดวันนี้</h3>
@@ -407,7 +400,6 @@
                                             <tr><th class="px-5 py-4 font-medium">หมายเลขงาน</th><th class="px-5 py-4 font-medium">ปลายทาง</th><th class="px-5 py-4 font-medium">สถานะ</th><th class="px-5 py-4 text-center font-medium">Action</th></tr>
                                         </thead>
                                         <tbody class="divide-y divide-slate-800/50" id="dash-table-body">
-                                            <!-- Mock Rows -->
                                             <tr class="hover:bg-slate-800/30 transition-colors">
                                                 <td class="px-5 py-4 font-mono text-slate-300">DT-2024-0040</td>
                                                 <td class="px-5 py-4"><p class="text-white font-medium">สาขา สีลม</p><p class="text-[10px]">ถ.สีลม บางรัก</p></td>
@@ -431,9 +423,7 @@
                                 </div>
                             </div>
 
-                            <!-- Side Panels -->
                             <div class="space-y-6">
-                                <!-- Alerts -->
                                 <div class="bg-[#1e293b] rounded-xl border border-slate-800 overflow-hidden">
                                     <div class="p-4 border-b border-slate-800 flex justify-between items-center">
                                         <h3 class="text-white font-bold text-sm flex items-center gap-2"><i data-lucide="bell" class="w-4 h-4 text-slate-400"></i> แจ้งเตือนล่าสุด</h3>
@@ -454,22 +444,12 @@
                                         </div>
                                     </div>
                                 </div>
-                                <!-- Progress -->
                                 <div class="bg-[#1e293b] rounded-xl border border-slate-800 p-5">
                                     <h3 class="text-white font-bold text-sm mb-5 flex items-center gap-2"><i data-lucide="pie-chart" class="w-4 h-4 text-slate-400"></i> สรุปสถานะ</h3>
                                     <div class="space-y-4">
-                                        <div>
-                                            <div class="flex justify-between text-xs mb-1"><span class="text-slate-400">ส่งสำเร็จ</span><span class="text-slate-300 font-mono">75%</span></div>
-                                            <div class="w-full bg-slate-800 rounded-full h-1.5"><div class="bg-green-500 h-1.5 rounded-full" style="width: 75%"></div></div>
-                                        </div>
-                                        <div>
-                                            <div class="flex justify-between text-xs mb-1"><span class="text-slate-400">กำลังส่ง</span><span class="text-slate-300 font-mono">20%</span></div>
-                                            <div class="w-full bg-slate-800 rounded-full h-1.5"><div class="bg-blue-500 h-1.5 rounded-full" style="width: 20%"></div></div>
-                                        </div>
-                                        <div>
-                                            <div class="flex justify-between text-xs mb-1"><span class="text-slate-400">ล่าช้า</span><span class="text-slate-300 font-mono">5%</span></div>
-                                            <div class="w-full bg-slate-800 rounded-full h-1.5"><div class="bg-yellow-500 h-1.5 rounded-full" style="width: 5%"></div></div>
-                                        </div>
+                                        <div><div class="flex justify-between text-xs mb-1"><span class="text-slate-400">ส่งสำเร็จ</span><span class="text-slate-300 font-mono">75%</span></div><div class="w-full bg-slate-800 rounded-full h-1.5"><div class="bg-green-500 h-1.5 rounded-full" style="width: 75%"></div></div></div>
+                                        <div><div class="flex justify-between text-xs mb-1"><span class="text-slate-400">กำลังส่ง</span><span class="text-slate-300 font-mono">20%</span></div><div class="w-full bg-slate-800 rounded-full h-1.5"><div class="bg-blue-500 h-1.5 rounded-full" style="width: 20%"></div></div></div>
+                                        <div><div class="flex justify-between text-xs mb-1"><span class="text-slate-400">ล่าช้า</span><span class="text-slate-300 font-mono">5%</span></div><div class="w-full bg-slate-800 rounded-full h-1.5"><div class="bg-yellow-500 h-1.5 rounded-full" style="width: 5%"></div></div></div>
                                     </div>
                                 </div>
                             </div>
@@ -490,9 +470,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="flex-grow bg-[#0f172a] relative overflow-hidden h-2/3 md:h-full z-0" id="real-map-container">
-                            <!-- Leaflet Map renders here -->
-                        </div>
+                        <div class="flex-grow bg-[#0f172a] relative overflow-hidden h-2/3 md:h-full z-0" id="real-map-container"></div>
                     </div>
                 </main>
             </div>
@@ -501,69 +479,46 @@
     </div>
 
     <script>
-        // Custom Modal Functions (Replacing alert/confirm)
+        // Custom Modal Functions
         function showCustomModal(type, title, message, onConfirm = null) {
-            const modal = document.getElementById('custom-modal');
-            const box = document.getElementById('custom-modal-box');
-            const icon = document.getElementById('modal-icon');
-            const iconContainer = document.getElementById('modal-icon-container');
-            const titleEl = document.getElementById('modal-title');
-            const messageEl = document.getElementById('modal-message');
+            const modal = document.getElementById('custom-modal'); const box = document.getElementById('custom-modal-box');
+            const icon = document.getElementById('modal-icon'); const iconContainer = document.getElementById('modal-icon-container');
+            const titleEl = document.getElementById('modal-title'); const messageEl = document.getElementById('modal-message');
             const buttonsEl = document.getElementById('modal-buttons');
 
-            titleEl.innerText = title;
-            messageEl.innerHTML = message;
-            buttonsEl.innerHTML = '';
+            titleEl.innerText = title; messageEl.innerHTML = message; buttonsEl.innerHTML = '';
 
             if (type === 'alert' || type === 'error') {
                 icon.setAttribute('data-lucide', type === 'error' ? 'alert-triangle' : 'info');
                 iconContainer.className = type === 'error' ? 'w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-100 text-red-600' : 'w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-blue-100 text-blue-600';
-                
                 const btn = document.createElement('button');
                 btn.className = `px-6 py-2 rounded-xl font-bold text-white w-full ${type === 'error' ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-600 hover:bg-blue-700'}`;
-                btn.innerText = 'ตกลง';
-                btn.onclick = () => hideCustomModal();
+                btn.innerText = 'ตกลง'; btn.onclick = () => hideCustomModal();
                 buttonsEl.appendChild(btn);
             } else if (type === 'confirm') {
                 icon.setAttribute('data-lucide', 'help-circle');
                 iconContainer.className = 'w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-yellow-100 text-yellow-600';
-                
                 const cancelBtn = document.createElement('button');
                 cancelBtn.className = 'px-6 py-2 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 flex-1';
-                cancelBtn.innerText = 'ยกเลิก';
-                cancelBtn.onclick = () => hideCustomModal();
-                
+                cancelBtn.innerText = 'ยกเลิก'; cancelBtn.onclick = () => hideCustomModal();
                 const confirmBtn = document.createElement('button');
                 confirmBtn.className = 'px-6 py-2 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 flex-1';
-                confirmBtn.innerText = 'ยืนยัน';
-                confirmBtn.onclick = () => { hideCustomModal(); if(onConfirm) onConfirm(); };
-                
-                buttonsEl.appendChild(cancelBtn);
-                buttonsEl.appendChild(confirmBtn);
+                confirmBtn.innerText = 'ยืนยัน'; confirmBtn.onclick = () => { hideCustomModal(); if(onConfirm) onConfirm(); };
+                buttonsEl.appendChild(cancelBtn); buttonsEl.appendChild(confirmBtn);
             }
 
-            lucide.createIcons();
-            modal.classList.remove('hide');
-            // Trigger animation
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-                box.classList.remove('scale-95');
-                box.classList.add('scale-100');
-            }, 10);
+            lucide.createIcons(); modal.classList.remove('hide');
+            setTimeout(() => { modal.classList.remove('opacity-0'); box.classList.remove('scale-95'); box.classList.add('scale-100'); }, 10);
         }
 
         function hideCustomModal() {
-            const modal = document.getElementById('custom-modal');
-            const box = document.getElementById('custom-modal-box');
-            modal.classList.add('opacity-0');
-            box.classList.remove('scale-100');
-            box.classList.add('scale-95');
+            const modal = document.getElementById('custom-modal'); const box = document.getElementById('custom-modal-box');
+            modal.classList.add('opacity-0'); box.classList.remove('scale-100'); box.classList.add('scale-95');
             setTimeout(() => modal.classList.add('hide'), 300);
         }
 
-        // PWA Setup
         function setupPWA() {
-            const manifestData = { name: "DeliTrack", short_name: "DeliTrack", display: "standalone", background_color: "#0f172a", theme_color: "#0f172a" };
+            const manifestData = { name: "NPT DeliTrack", short_name: "DeliTrack", display: "standalone", background_color: "#0f172a", theme_color: "#0f172a", icons: [{ src: "./logo.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }] };
             document.getElementById('manifest-link').href = URL.createObjectURL(new Blob([JSON.stringify(manifestData)], {type: 'application/manifest+json'}));
         }
         setupPWA();
@@ -573,133 +528,81 @@
             e.preventDefault(); deferredPrompt = e;
             if(!currentRole) document.getElementById('install-btn').classList.remove('hide');
         });
-        function installApp() {
-            if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then(() => { document.getElementById('install-btn').classList.add('hide'); deferredPrompt = null; }); }
-        }
+        function installApp() { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then(() => { document.getElementById('install-btn').classList.add('hide'); deferredPrompt = null; }); } }
 
-        // Config & State
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyPb09gXXhWwbSpHZk07A53l5Dow2-M5iNcoIsN6wPK4P8hrFxpiLSWjaYYJLvdLFES/exec";
-        
         let currentRole = localStorage.getItem('deliveryAppRole');
         let driverInfo = JSON.parse(localStorage.getItem('deliveryDriverInfo')) || null;
         let routeData = JSON.parse(localStorage.getItem('deliveryRouteData')) || null;
-        
-        let isDriverUnlocked = false;
-        let currentPin = "";
-        
-        let html5QrCode = null; 
-        let mapInstance = null;
-        let gpsInterval = null;
-        let adminGpsInterval = null;
-        let adminClockInterval = null;
+        let isDriverUnlocked = false; let currentPin = "";
+        let html5QrCode = null; let mapInstance = null;
+        let gpsInterval = null; let adminGpsInterval = null; let adminClockInterval = null;
 
         document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
-            updateAppView();
+            lucide.createIcons(); updateAppView();
             document.getElementById("manual-scan-input").value = "โรงงาน IU Plant$1200374692$บางปู$บริษัท สยามซิตะ จำกัด$4157086720$บริษัท ไทย ออโต้ คอนเวอชั่น$4153366019$บริษัท อาซาฮี เทค อลูมิเนียม$4152121206$4152121207$4152121208";
         });
 
-        // -----------------------------------------------------
-        // VIEW ROUTING
-        // -----------------------------------------------------
-        function handleLogin(role) {
-            currentRole = role;
-            if (role === 'customer' || role === 'admin') {
-                localStorage.setItem('deliveryAppRole', role);
-            }
-            updateAppView();
-        }
-
-        function backToMain() {
-            currentRole = null;
-            updateAppView();
-        }
-
+        function handleLogin(role) { currentRole = role; if (role === 'customer' || role === 'admin') { localStorage.setItem('deliveryAppRole', role); } updateAppView(); }
+        function backToMain() { currentRole = null; updateAppView(); }
         function handleLogoutConfirm() {
             showCustomModal('confirm', 'ออกจากระบบ', 'คุณต้องการออกจากระบบ หรือสลับบัญชีใช่หรือไม่?', () => {
                 currentRole = null; driverInfo = null; isDriverUnlocked = false; currentPin = "";
                 localStorage.removeItem('deliveryAppRole'); localStorage.removeItem('deliveryDriverInfo');
                 if(html5QrCode && html5QrCode.isScanning) html5QrCode.stop().catch(e => console.error(e));
-                stopGPS(); stopAdminGPS(); clearInterval(adminClockInterval);
-                updateAppView();
+                stopGPS(); stopAdminGPS(); clearInterval(adminClockInterval); updateAppView();
             });
         }
 
         function updateAppView() {
-            document.getElementById('view-login').classList.add('hide');
-            document.getElementById('view-driver-auth').classList.add('hide');
-            document.getElementById('view-pin-lock').classList.add('hide');
-            document.getElementById('view-kyc').classList.add('hide');
-            document.getElementById('view-driver').classList.add('hide');
-            document.getElementById('view-customer').classList.add('hide');
-            document.getElementById('view-admin').classList.add('hide');
-            document.getElementById('install-btn').classList.add('hide'); 
-            
+            document.getElementById('view-login').classList.add('hide'); document.getElementById('view-driver-auth').classList.add('hide');
+            document.getElementById('view-pin-lock').classList.add('hide'); document.getElementById('view-kyc').classList.add('hide');
+            document.getElementById('view-driver').classList.add('hide'); document.getElementById('view-customer').classList.add('hide');
+            document.getElementById('view-admin').classList.add('hide'); document.getElementById('install-btn').classList.add('hide'); 
             const container = document.getElementById('app-container');
             
             if(currentRole === 'admin') {
                 container.className = "w-full bg-[#0f172a] overflow-hidden relative flex flex-col transition-all duration-500 h-screen w-full max-w-none rounded-none border-none mt-0";
-                document.getElementById('view-admin').classList.remove('hide');
-                document.getElementById('view-admin').classList.add('flex');
-                switchAdminTab('dashboard');
-                startAdminClock();
+                document.getElementById('view-admin').classList.remove('hide'); document.getElementById('view-admin').classList.add('flex');
+                switchAdminTab('dashboard'); startAdminClock();
             } else {
                 container.className = "w-full bg-white overflow-hidden relative flex flex-col transition-all duration-500 h-screen max-w-md shadow-2xl sm:border-[8px] sm:border-slate-800 sm:rounded-[2.5rem] sm:h-[850px] sm:mt-10";
-                
                 if (currentRole === 'driver') {
                     if (driverInfo && driverInfo.phone) {
                         localStorage.setItem('deliveryAppRole', 'driver');
                         if (isDriverUnlocked) {
-                            document.getElementById('view-driver').classList.remove('hide');
-                            document.getElementById('view-driver').classList.add('flex');
-                            document.getElementById('driver-header-name').innerText = driverInfo.name;
-                            renderDriverState();
-                            startGPS();
+                            document.getElementById('view-driver').classList.remove('hide'); document.getElementById('view-driver').classList.add('flex');
+                            document.getElementById('driver-profile-name').innerText = driverInfo.name;
+                            document.getElementById('driver-profile-plate').innerText = "ทะเบียน: " + driverInfo.plate;
+                            renderDriverState(); startGPS();
                         } else {
                             document.getElementById('pin-lock-name').innerText = "สวัสดี, " + driverInfo.name.split(' ')[0];
-                            resetPinPad();
-                            document.getElementById('view-pin-lock').classList.remove('hide');
-                            document.getElementById('view-pin-lock').classList.add('flex');
+                            resetPinPad(); document.getElementById('view-pin-lock').classList.remove('hide'); document.getElementById('view-pin-lock').classList.add('flex');
                         }
                     } else {
-                        document.getElementById('view-driver-auth').classList.remove('hide');
-                        document.getElementById('view-driver-auth').classList.add('flex');
-                        switchAuthTab('login');
+                        document.getElementById('view-driver-auth').classList.remove('hide'); document.getElementById('view-driver-auth').classList.add('flex'); switchAuthTab('login');
                     }
                 } else if (currentRole === 'customer') {
-                    document.getElementById('view-customer').classList.remove('hide');
-                    document.getElementById('view-customer').classList.add('flex');
-                    backToCustomerSearch();
+                    document.getElementById('view-customer').classList.remove('hide'); document.getElementById('view-customer').classList.add('flex'); backToCustomerSearch();
                 } else {
-                    document.getElementById('view-login').classList.remove('hide');
-                    if (deferredPrompt) document.getElementById('install-btn').classList.remove('hide');
+                    document.getElementById('view-login').classList.remove('hide'); if (deferredPrompt) document.getElementById('install-btn').classList.remove('hide');
                 }
             }
             lucide.createIcons();
         }
 
-        // -----------------------------------------------------
-        // DRIVER AUTH & PIN
-        // -----------------------------------------------------
         function switchAuthTab(tab) {
             if(tab === 'login') {
-                document.getElementById('tab-login').className = "flex-1 py-3 text-center font-bold text-blue-600 border-b-2 border-blue-600";
-                document.getElementById('tab-register').className = "flex-1 py-3 text-center font-bold text-slate-400 border-b-2 border-transparent";
-                document.getElementById('form-login').classList.remove('hide');
-                document.getElementById('form-register').classList.add('hide');
+                document.getElementById('tab-login').className = "flex-1 py-3 text-center font-bold text-blue-600 border-b-2 border-blue-600 transition-all"; document.getElementById('tab-register').className = "flex-1 py-3 text-center font-bold text-slate-400 border-b-2 border-transparent transition-all";
+                document.getElementById('form-login').classList.remove('hide'); document.getElementById('form-register').classList.add('hide');
             } else {
-                document.getElementById('tab-register').className = "flex-1 py-3 text-center font-bold text-blue-600 border-b-2 border-blue-600";
-                document.getElementById('tab-login').className = "flex-1 py-3 text-center font-bold text-slate-400 border-b-2 border-transparent";
-                document.getElementById('form-register').classList.remove('hide');
-                document.getElementById('form-login').classList.add('hide');
+                document.getElementById('tab-register').className = "flex-1 py-3 text-center font-bold text-blue-600 border-b-2 border-blue-600 transition-all"; document.getElementById('tab-login').className = "flex-1 py-3 text-center font-bold text-slate-400 border-b-2 border-transparent transition-all";
+                document.getElementById('form-register').classList.remove('hide'); document.getElementById('form-login').classList.add('hide');
             }
         }
 
         async function submitAuth(action) {
-            let payload = {};
-            let btnId = action === 'login' ? 'btn-login' : 'btn-register';
-            let originalText = document.getElementById(btnId).innerHTML;
-
+            let payload = {}; let btnId = action === 'login' ? 'btn-login' : 'btn-register'; let originalText = document.getElementById(btnId).innerHTML;
             if (action === 'login') {
                 payload = { phone: document.getElementById('login-phone').value.trim(), password: document.getElementById('login-pass').value.trim() };
                 if (!payload.phone || payload.password.length !== 6) return showCustomModal('alert', 'ข้อมูลไม่ครบ', "กรุณากรอกเบอร์โทร และ รหัส PIN ให้ครบ 6 หลัก");
@@ -708,35 +611,24 @@
                 if (!payload.name || !payload.plate || !payload.phone || payload.password.length !== 6) return showCustomModal('alert', 'ข้อมูลไม่ครบ', "กรุณากรอกข้อมูลให้ครบ และตั้งรหัส PIN 6 หลัก");
             }
 
-            document.getElementById(btnId).innerHTML = '<i data-lucide="loader-2" class="animate-spin w-5 h-5"></i> กำลังตรวจสอบ...';
-            document.getElementById(btnId).disabled = true; lucide.createIcons();
+            document.getElementById(btnId).innerHTML = '<i data-lucide="loader-2" class="animate-spin w-5 h-5"></i> กำลังตรวจสอบ...'; document.getElementById(btnId).disabled = true; lucide.createIcons();
 
             try {
                 const response = await fetch(WEB_APP_URL, { method: "POST", mode: "cors", body: JSON.stringify({ action: action === 'login' ? "loginDriver" : "registerDriver", data: payload }) });
                 const result = await response.json();
-                
                 if(result.status === "success") {
                     driverInfo = { ...result.data.driver, pin: payload.password };
                     localStorage.setItem('deliveryDriverInfo', JSON.stringify(driverInfo));
-                    startKYC(); // แทนที่จะเข้าแอปเลย ให้ทำ KYC ก่อน
-                } else {
-                    showCustomModal('error', 'ผิดพลาด', result.message);
-                }
+                    startKYC(); 
+                } else { showCustomModal('error', 'ผิดพลาด', result.message); }
             } catch (error) { showCustomModal('error', 'เชื่อมต่อล้มเหลว', "ไม่สามารถเชื่อมต่อฐานข้อมูลได้"); } 
             finally { document.getElementById(btnId).innerHTML = originalText; document.getElementById(btnId).disabled = false; lucide.createIcons(); }
         }
 
-        // --- PIN Pad ---
         function pressPin(num) {
-            if (currentPin.length < 6) {
-                currentPin += num;
-                updatePinUI();
-                if (currentPin.length === 6) setTimeout(verifyPin, 100);
-            }
+            if (currentPin.length < 6) { currentPin += num; updatePinUI(); if (currentPin.length === 6) setTimeout(verifyPin, 100); }
         }
-        function deletePin() {
-            if (currentPin.length > 0) { currentPin = currentPin.slice(0, -1); updatePinUI(); }
-        }
+        function deletePin() { if (currentPin.length > 0) { currentPin = currentPin.slice(0, -1); updatePinUI(); } }
         function updatePinUI() {
             const dots = document.getElementById('pin-dots').children;
             for(let i=0; i<6; i++) {
@@ -748,193 +640,87 @@
         function resetPinPad() { currentPin = ""; updatePinUI(); }
         
         function verifyPin() {
-            if (currentPin === driverInfo.pin) {
-                startKYC(); // รหัสถูก ไปทำ KYC
-            } else {
-                const dotsContainer = document.getElementById('pin-dots');
-                document.getElementById('pin-error-msg').innerText = "รหัส PIN ไม่ถูกต้อง";
-                dotsContainer.classList.remove('animate-shake');
-                void dotsContainer.offsetWidth; 
-                dotsContainer.classList.add('animate-shake');
+            if (currentPin === driverInfo.pin) { startKYC(); } else {
+                const dotsContainer = document.getElementById('pin-dots'); document.getElementById('pin-error-msg').innerText = "รหัส PIN ไม่ถูกต้อง";
+                dotsContainer.classList.remove('animate-shake'); void dotsContainer.offsetWidth; dotsContainer.classList.add('animate-shake');
                 setTimeout(resetPinPad, 500);
             }
         }
 
-        // -----------------------------------------------------
-        // KYC SIMULATION
-        // -----------------------------------------------------
         let kycStream = null;
-        
         function startKYC() {
-            document.getElementById('view-driver-auth').classList.add('hide');
-            document.getElementById('view-pin-lock').classList.add('hide');
-            
-            const kycView = document.getElementById('view-kyc');
-            kycView.classList.remove('hide');
-            kycView.classList.add('flex');
-            
-            const video = document.getElementById('kyc-video');
-            const statusText = document.getElementById('kyc-status-text');
+            document.getElementById('view-driver-auth').classList.add('hide'); document.getElementById('view-pin-lock').classList.add('hide');
+            const kycView = document.getElementById('view-kyc'); kycView.classList.remove('hide'); kycView.classList.add('flex');
+            const video = document.getElementById('kyc-video'); const statusText = document.getElementById('kyc-status-text');
             statusText.innerText = "กำลังเข้าถึงกล้อง...";
 
-            // พยายามเปิดกล้องหน้า (Front camera)
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
                 .then(function (stream) {
-                    kycStream = stream;
-                    video.srcObject = stream;
-                    video.play();
-                    
+                    kycStream = stream; video.srcObject = stream; video.play();
                     statusText.innerText = "กรุณามองกล้องเพื่อยืนยันใบหน้า";
-                    
-                    // จำลองการแสกนหน้า 3 วินาที
-                    setTimeout(() => {
-                        statusText.innerText = "วิเคราะห์เค้าโครงหน้า...";
-                        statusText.classList.replace('text-blue-400', 'text-yellow-400');
-                    }, 1500);
-
-                    setTimeout(() => {
-                        statusText.innerText = "ยืนยันตัวตนสำเร็จ!";
-                        statusText.classList.replace('text-yellow-400', 'text-green-400');
-                        statusText.classList.remove('animate-pulse');
-                        
-                        // ปิดกล้องแล้วเข้าแอป
-                        setTimeout(finishKYC, 1000);
-                    }, 3500);
+                    setTimeout(() => { statusText.innerText = "วิเคราะห์เค้าโครงหน้า..."; statusText.classList.replace('text-blue-400', 'text-yellow-400'); }, 1500);
+                    setTimeout(() => { statusText.innerText = "ยืนยันตัวตนสำเร็จ!"; statusText.classList.replace('text-yellow-400', 'text-green-400'); statusText.classList.remove('animate-pulse'); setTimeout(finishKYC, 1000); }, 3500);
                 })
-                .catch(function (err) {
-                    console.log("KYC Camera Error:", err);
-                    statusText.innerText = "ไม่สามารถเปิดกล้องได้ ข้ามการแสกน...";
-                    setTimeout(finishKYC, 1500);
-                });
-            } else {
-                statusText.innerText = "เบราว์เซอร์ไม่รองรับ ข้ามการแสกน...";
-                setTimeout(finishKYC, 1500);
-            }
+                .catch(function (err) { statusText.innerText = "ไม่สามารถเปิดกล้องได้ ข้ามการแสกน..."; setTimeout(finishKYC, 1500); });
+            } else { statusText.innerText = "เบราว์เซอร์ไม่รองรับ ข้ามการแสกน..."; setTimeout(finishKYC, 1500); }
         }
 
         function finishKYC() {
-            if (kycStream) {
-                kycStream.getTracks().forEach(track => track.stop());
-                kycStream = null;
-            }
-            // คืนค่า styling ของ status เผื่อใช้รอบหน้า
+            if (kycStream) { kycStream.getTracks().forEach(track => track.stop()); kycStream = null; }
             const statusText = document.getElementById('kyc-status-text');
             statusText.className = "text-blue-400 font-bold animate-pulse text-lg tracking-wider";
-            
-            isDriverUnlocked = true;
-            updateAppView();
+            isDriverUnlocked = true; updateAppView();
         }
 
-        // -----------------------------------------------------
-        // DRIVER LOGIC
-        // -----------------------------------------------------
         function renderDriverState() {
-            document.getElementById('driver-empty-state').classList.add('hide');
-            document.getElementById('driver-scanning-state').classList.add('hide');
-            document.getElementById('driver-data-state').classList.add('hide');
-
+            document.getElementById('driver-empty-state').classList.add('hide'); document.getElementById('driver-scanning-state').classList.add('hide'); document.getElementById('driver-data-state').classList.add('hide');
             if (routeData && routeData.docNo) {
-                document.getElementById('driver-doc-no').innerText = routeData.docNo;
-                document.getElementById('driver-route-name').innerText = `${routeData.route} (รับจาก: ${routeData.origin})`;
+                document.getElementById('driver-doc-no').innerText = routeData.docNo; document.getElementById('driver-route-name').innerText = `${routeData.route} (รับจาก: ${routeData.origin})`;
                 document.getElementById('driver-data-state').classList.remove('hide');
-                
-                const list = document.getElementById('driver-stops-list');
-                list.innerHTML = '';
-
+                const list = document.getElementById('driver-stops-list'); list.innerHTML = '';
                 routeData.stops.forEach((stop, index) => {
-                    const isDone = stop.status === 'completed';
-                    const displayCustomerName = stop.customerName || stop.name || "ไม่ทราบชื่อลูกค้า";
-                    
+                    const isDone = stop.status === 'completed'; const displayCustomerName = stop.customerName || stop.name || "ไม่ทราบชื่อลูกค้า";
                     let statusClasses = isDone ? 'border-green-500 opacity-60 bg-slate-50' : 'border-blue-500 bg-white ring-1 ring-blue-200 shadow-md';
                     let numClasses = isDone ? 'bg-green-500 text-white' : 'bg-blue-600 text-white shadow-md';
-                    
                     let invBadges = stop.invoices.map(inv => `<span class="bg-slate-100 text-slate-700 px-2 py-1 rounded font-mono text-xs border border-slate-200">${inv}</span>`).join('');
-
-                    let btnHtml = isDone ? '' : `
-                        <div class="mt-4 pt-3 border-t border-slate-100 relative z-10">
-                            <button onclick="confirmDeliveryConfirm(${index})" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-95 cursor-pointer">
-                                <i data-lucide="check-circle-2" class="w-5 h-5 pointer-events-none"></i> ยืนยันส่งมอบให้ลูกค้านี้
-                            </button>
-                        </div>`;
-
-                    list.innerHTML += `
-                        <div class="rounded-xl border-l-4 overflow-hidden ${statusClasses} transition-all">
-                            <div class="p-4">
-                                <div class="flex items-start gap-3 mb-2">
-                                    <div class="w-7 h-7 rounded-full flex shrink-0 items-center justify-center text-xs font-bold ${numClasses}">${index + 1}</div>
-                                    <div class="flex-grow">
-                                        <h3 class="font-bold text-slate-800 leading-tight">${displayCustomerName}</h3>
-                                        <div class="flex flex-wrap gap-1 mt-2">${invBadges}</div>
-                                    </div>
-                                    ${isDone ? '<i data-lucide="check-circle-2" class="text-green-500 w-6 h-6 shrink-0"></i>' : ''}
-                                </div>
-                                ${btnHtml}
-                            </div>
-                        </div>
-                    `;
+                    let btnHtml = isDone ? '' : `<div class="mt-4 pt-3 border-t border-slate-100 relative z-10"><button onclick="confirmDeliveryConfirm(${index})" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-95 cursor-pointer"><i data-lucide="check-circle-2" class="w-5 h-5 pointer-events-none"></i> ยืนยันส่งมอบให้ลูกค้านี้</button></div>`;
+                    list.innerHTML += `<div class="rounded-xl border-l-4 overflow-hidden ${statusClasses} transition-all"><div class="p-4"><div class="flex items-start gap-3 mb-2"><div class="w-7 h-7 rounded-full flex shrink-0 items-center justify-center text-xs font-bold ${numClasses}">${index + 1}</div><div class="flex-grow"><h3 class="font-bold text-slate-800 leading-tight">${displayCustomerName}</h3><div class="flex flex-wrap gap-1 mt-2">${invBadges}</div></div>${isDone ? '<i data-lucide="check-circle-2" class="text-green-500 w-6 h-6 shrink-0"></i>' : ''}</div>${btnHtml}</div></div>`;
                 });
                 lucide.createIcons();
-            } else {
-                document.getElementById('driver-empty-state').classList.remove('hide');
-            }
+            } else { document.getElementById('driver-empty-state').classList.remove('hide'); }
         }
 
         function startScanner() {
-            document.getElementById('driver-empty-state').classList.add('hide');
-            document.getElementById('driver-scanning-state').classList.remove('hide');
-            document.getElementById('driver-scanning-state').classList.add('flex');
-            
+            document.getElementById('driver-empty-state').classList.add('hide'); document.getElementById('driver-scanning-state').classList.remove('hide'); document.getElementById('driver-scanning-state').classList.add('flex');
             if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-            
             html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 }, 
-                async (decodedText) => {
-                    await html5QrCode.stop();
-                    processScanData(decodedText);
-                }, undefined
-            ).catch(err => {
-                showCustomModal('error', 'เปิดกล้องไม่ได้', 'ไม่สามารถเข้าถึงกล้องได้ กรุณาตรวจสอบสิทธิ์ (Permissions)');
-                cancelScan();
-            });
+                async (decodedText) => { await html5QrCode.stop(); processScanData(decodedText); }, undefined
+            ).catch(err => { showCustomModal('error', 'เปิดกล้องไม่ได้', 'ไม่สามารถเข้าถึงกล้องได้ กรุณาตรวจสอบสิทธิ์ (Permissions)'); cancelScan(); });
         }
 
         function cancelScan() {
-            if (html5QrCode && html5QrCode.isScanning) { html5QrCode.stop().then(renderDriverState).catch(renderDriverState); } 
-            else { renderDriverState(); }
-            document.getElementById('driver-scanning-state').classList.remove('flex');
-            document.getElementById('driver-scanning-state').classList.add('hide');
+            if (html5QrCode && html5QrCode.isScanning) { html5QrCode.stop().then(renderDriverState).catch(renderDriverState); } else { renderDriverState(); }
+            document.getElementById('driver-scanning-state').classList.remove('flex'); document.getElementById('driver-scanning-state').classList.add('hide');
         }
 
         async function processScanData(rawText) {
             if (!rawText || !rawText.includes('$')) return showCustomModal('error', 'ข้อมูลไม่ถูกต้อง', 'รูปแบบ QR Code ไม่ถูกต้อง (ไม่พบ $)');
-            
-            document.getElementById('driver-scanning-state').classList.remove('flex');
-            document.getElementById('driver-scanning-state').classList.add('hide');
-            document.getElementById('driver-empty-state').classList.remove('hide');
-            
+            document.getElementById('driver-scanning-state').classList.remove('flex'); document.getElementById('driver-scanning-state').classList.add('hide'); document.getElementById('driver-empty-state').classList.remove('hide');
             showCustomModal('alert', 'กำลังสร้างงาน', 'กำลังสร้างฐานข้อมูลงานในระบบ<br>กรุณารอสักครู่...');
-
-            const parts = rawText.split('$');
-            const parsedData = { origin: parts[0], docNo: parts[1], route: parts[2], customers: [] };
-
+            const parts = rawText.split('$'); const parsedData = { origin: parts[0], docNo: parts[1], route: parts[2], customers: [] };
             let currentCustomer = null;
             for(let i=3; i<parts.length; i++) {
-                const token = parts[i].trim();
-                const isOnlyNumbers = /^\d+$/.test(token); 
-                if (!isOnlyNumbers) {
-                    if (currentCustomer) parsedData.customers.push(currentCustomer);
-                    currentCustomer = { name: token, customerName: token, invoices: [], status: 'pending' };
-                } else {
-                    if (currentCustomer) currentCustomer.invoices.push(token);
-                }
+                const token = parts[i].trim(); const isOnlyNumbers = /^\d+$/.test(token); 
+                if (!isOnlyNumbers) { if (currentCustomer) parsedData.customers.push(currentCustomer); currentCustomer = { name: token, customerName: token, invoices: [], status: 'pending' }; } 
+                else { if (currentCustomer) currentCustomer.invoices.push(token); }
             }
             if (currentCustomer) parsedData.customers.push(currentCustomer);
 
             try {
                 const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "initRoute", data: parsedData }) });
                 const result = await response.json();
-                if(result.status === "success") { fetchRouteData(parsedData.docNo); } 
-                else { showCustomModal('error', 'บันทึกล้มเหลว', result.message); }
+                if(result.status === "success") { fetchRouteData(parsedData.docNo); } else { showCustomModal('error', 'บันทึกล้มเหลว', result.message); }
             } catch (error) { showCustomModal('error', 'การเชื่อมต่อขัดข้อง', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้'); } 
         }
 
@@ -942,20 +728,15 @@
             try {
                 const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getRouteData", docNo: docNo.trim() }) });
                 const result = await response.json();
-                
                 if(result.status === "success") {
-                    routeData = result.data;
-                    localStorage.setItem('deliveryRouteData', JSON.stringify(routeData));
-                    document.getElementById('manual-scan-input').value = ""; 
-                    hideCustomModal();
-                    renderDriverState();
+                    routeData = result.data; localStorage.setItem('deliveryRouteData', JSON.stringify(routeData));
+                    document.getElementById('manual-scan-input').value = ""; hideCustomModal(); renderDriverState();
                 } else { showCustomModal('error', 'เกิดข้อผิดพลาด', result.message); }
             } catch (error) { showCustomModal('error', 'การเชื่อมต่อขัดข้อง', 'เชื่อมต่อฐานข้อมูลล้มเหลว'); }
         }
 
         function confirmDeliveryConfirm(index) {
-            const stopData = routeData.stops[index];
-            const customerName = stopData.customerName || stopData.name || "ไม่ทราบชื่อลูกค้า";
+            const stopData = routeData.stops[index]; const customerName = stopData.customerName || stopData.name || "ไม่ทราบชื่อลูกค้า";
             showCustomModal('confirm', 'ยืนยันการจัดส่ง', `ส่งมอบสินค้าให้ <b>${customerName}</b> สำเร็จใช่หรือไม่?`, () => executeDelivery(index));
         }
 
@@ -967,71 +748,38 @@
             try {
                 const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "updateStatus", docNo: routeData.docNo, customerName: stopData.customerName || stopData.name, status: "completed" }) });
                 const result = await response.json();
-                
                 if(result.status === "success") {
-                    stopData.status = 'completed';
-                    localStorage.setItem('deliveryRouteData', JSON.stringify(routeData));
-                    renderDriverState();
-                    hideCustomModal();
-                    
-                    const allDone = routeData.stops.every(s => s.status === 'completed');
-                    if (allDone) {
-                        setTimeout(() => { showCustomModal('alert', 'ปิดจ๊อบ 🎉', 'จัดส่งครบทุกจุดแล้ว ระบบจะเคลียร์งานเพื่อรับงานใหม่', () => resetDriverJobRaw()); }, 600);
-                    }
+                    stopData.status = 'completed'; localStorage.setItem('deliveryRouteData', JSON.stringify(routeData));
+                    renderDriverState(); hideCustomModal();
+                    if (routeData.stops.every(s => s.status === 'completed')) { setTimeout(() => { showCustomModal('alert', 'ปิดจ๊อบ 🎉', 'จัดส่งครบทุกจุดแล้ว ระบบจะเคลียร์งานเพื่อรับงานใหม่', () => resetDriverJobRaw()); }, 600); }
                 } else { showCustomModal('error', 'บันทึกล้มเหลว', result.message); }
             } catch (error) { showCustomModal('error', 'การเชื่อมต่อขัดข้อง', 'เชื่อมต่อฐานข้อมูลล้มเหลว'); } 
             finally { container.style.pointerEvents = 'auto'; }
         }
 
-        function resetDriverJobConfirm() {
-            showCustomModal('confirm', 'รีเซ็ตงาน', 'ต้องการรีเซ็ตเพื่อสแกนใบนำส่งใหม่หรือไม่?', resetDriverJobRaw);
-        }
-        function resetDriverJobRaw() {
-            routeData = null; localStorage.removeItem('deliveryRouteData'); renderDriverState();
-        }
+        function resetDriverJobConfirm() { showCustomModal('confirm', 'รีเซ็ตงาน', 'ต้องการรีเซ็ตเพื่อสแกนใบนำส่งใหม่หรือไม่?', resetDriverJobRaw); }
+        function resetDriverJobRaw() { routeData = null; localStorage.removeItem('deliveryRouteData'); renderDriverState(); }
 
-        // --- GPS Logic for Driver ---
-        function startGPS() {
-            if (gpsInterval) clearInterval(gpsInterval);
-            sendGPSData(); // ส่งทันที 1 ครั้ง
-            gpsInterval = setInterval(sendGPSData, 15000); // ส่งทุก 15 วิ
-        }
-        function stopGPS() {
-            if (gpsInterval) { clearInterval(gpsInterval); gpsInterval = null; }
-        }
+        function startGPS() { if (gpsInterval) clearInterval(gpsInterval); sendGPSData(); gpsInterval = setInterval(sendGPSData, 15000); }
+        function stopGPS() { if (gpsInterval) { clearInterval(gpsInterval); gpsInterval = null; } }
         function sendGPSData() {
             if (!routeData || !routeData.docNo || !driverInfo) return;
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(position => {
-                    const payload = {
-                        action: "updateGPS", docNo: routeData.docNo,
-                        lat: position.coords.latitude, lng: position.coords.longitude,
-                        driverName: driverInfo.name, plate: driverInfo.plate
-                    };
+                    const payload = { action: "updateGPS", docNo: routeData.docNo, lat: position.coords.latitude, lng: position.coords.longitude, driverName: driverInfo.name, plate: driverInfo.plate };
                     fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) }).catch(e=>console.log('GPS Error'));
                 }, err => console.log('Location access denied'), { enableHighAccuracy: true });
             }
         }
 
-        // -----------------------------------------------------
-        // CUSTOMER LOGIC
-        // -----------------------------------------------------
-        function backToCustomerSearch() {
-            document.getElementById('customer-search-state').classList.remove('hide');
-            document.getElementById('customer-result-state').classList.add('hide');
-            document.getElementById('customer-result-state').classList.remove('flex');
-        }
-
+        function backToCustomerSearch() { document.getElementById('customer-search-state').classList.remove('hide'); document.getElementById('customer-result-state').classList.add('hide'); document.getElementById('customer-result-state').classList.remove('flex'); }
         async function searchTracking() {
             const input = document.getElementById('customer-tracking-input').value.trim();
             if(!input) return showCustomModal('alert', 'ข้อมูลไม่ครบ', 'กรุณากรอกเลข Invoice');
-            
             showCustomModal('alert', 'กำลังค้นหา', 'กำลังดึงข้อมูลจากระบบ...');
-
             try {
                 const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "trackInv", invNo: input }) });
-                const result = await response.json();
-                hideCustomModal();
+                const result = await response.json(); hideCustomModal();
                 if(result.status === "success") { renderCustomerResult(result.data); } 
                 else { setTimeout(()=>showCustomModal('error', 'ไม่พบข้อมูล', result.message || "ตรวจสอบหมายเลข Invoice อีกครั้ง"), 400); }
             } catch (error) { hideCustomModal(); setTimeout(()=>showCustomModal('error', 'เชื่อมต่อขัดข้อง', "การเชื่อมต่อมีปัญหา กรุณาลองใหม่อีกครั้ง"), 400); }
@@ -1039,63 +787,24 @@
 
         function renderCustomerResult(data) {
             const isCompleted = data.status === 'completed';
-
-            document.getElementById('cus-track-no').innerText = data.docNo;
-            document.getElementById('cus-customer-name').innerText = data.customerName;
-            document.getElementById('cus-invoices').innerText = data.invoices;
-            document.getElementById('cus-origin-name').innerText = "รับจาก: " + data.origin;
-            
-            const dot = document.getElementById('cus-dest-dot');
-            const check = document.getElementById('cus-dest-check');
-            const title = document.getElementById('cus-dest-title');
-            const badge = document.getElementById('cus-badge');
-            const timestamp = document.getElementById('cus-timestamp');
-
+            document.getElementById('cus-track-no').innerText = data.docNo; document.getElementById('cus-customer-name').innerText = data.customerName; document.getElementById('cus-invoices').innerText = data.invoices; document.getElementById('cus-origin-name').innerText = "รับจาก: " + data.origin;
+            const dot = document.getElementById('cus-dest-dot'); const check = document.getElementById('cus-dest-check'); const title = document.getElementById('cus-dest-title'); const badge = document.getElementById('cus-badge'); const timestamp = document.getElementById('cus-timestamp');
             if (isCompleted) {
-                dot.className = "absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-green-500 ring-4 ring-green-100 flex items-center justify-center";
-                check.classList.remove('hide');
-                title.className = "text-sm font-bold text-green-600";
-                badge.className = "text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold uppercase tracking-wider";
-                badge.innerText = "ส่งสำเร็จ";
-                timestamp.innerText = "เวลาอัปเดต: " + (data.timestamp ? data.timestamp : '-');
-                timestamp.classList.remove('hide');
+                dot.className = "absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-green-500 ring-4 ring-green-100 flex items-center justify-center"; check.classList.remove('hide'); title.className = "text-sm font-bold text-green-600"; badge.className = "text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold uppercase tracking-wider"; badge.innerText = "ส่งสำเร็จ"; timestamp.innerText = "เวลาอัปเดต: " + (data.timestamp ? data.timestamp : '-'); timestamp.classList.remove('hide');
             } else {
-                dot.className = "absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-slate-200 ring-4 ring-white border-2 border-slate-400 flex items-center justify-center";
-                check.classList.add('hide');
-                title.className = "text-sm font-bold text-slate-800";
-                badge.className = "text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded-full font-bold uppercase tracking-wider";
-                badge.innerText = "รอจัดส่ง";
-                timestamp.classList.add('hide');
+                dot.className = "absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-slate-200 ring-4 ring-white border-2 border-slate-400 flex items-center justify-center"; check.classList.add('hide'); title.className = "text-sm font-bold text-slate-800"; badge.className = "text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded-full font-bold uppercase tracking-wider"; badge.innerText = "รอจัดส่ง"; timestamp.classList.add('hide');
             }
-
-            document.getElementById('customer-search-state').classList.add('hide');
-            document.getElementById('customer-result-state').classList.remove('hide');
-            document.getElementById('customer-result-state').classList.add('flex');
-            lucide.createIcons();
+            document.getElementById('customer-search-state').classList.add('hide'); document.getElementById('customer-result-state').classList.remove('hide'); document.getElementById('customer-result-state').classList.add('flex'); lucide.createIcons();
         }
 
-        // -----------------------------------------------------
-        // ADMIN DASHBOARD & GPS LOGIC
-        // -----------------------------------------------------
         function switchAdminTab(tabName) {
-            // Update Nav visual
-            const btnDash = document.getElementById('nav-dashboard');
-            const btnGps = document.getElementById('nav-gps');
+            const btnDash = document.getElementById('nav-dashboard'); const btnGps = document.getElementById('nav-gps');
             if(btnDash) btnDash.className = tabName === 'dashboard' ? "w-full flex items-center gap-3 px-4 py-3 bg-blue-600/10 text-blue-400 rounded-xl font-medium transition-colors" : "w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-medium transition-colors";
             if(btnGps) btnGps.className = tabName === 'gps' ? "w-full flex items-center gap-3 px-4 py-3 bg-blue-600/10 text-blue-400 rounded-xl font-medium transition-colors" : "w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-medium transition-colors";
-            
-            // Toggle Views
             if(tabName === 'dashboard') {
-                document.getElementById('admin-tab-dashboard').classList.remove('hide');
-                document.getElementById('admin-tab-gps').classList.add('hide');
-                document.getElementById('admin-page-title').innerHTML = '<i data-lucide="layout-dashboard" class="w-5 h-5 text-slate-400"></i> ภาพรวม';
-                stopAdminGPS();
-                fetchDashboardData();
+                document.getElementById('admin-tab-dashboard').classList.remove('hide'); document.getElementById('admin-tab-gps').classList.add('hide'); document.getElementById('admin-page-title').innerHTML = '<i data-lucide="layout-dashboard" class="w-5 h-5 text-slate-400"></i> ภาพรวม'; stopAdminGPS(); fetchDashboardData();
             } else if (tabName === 'gps') {
-                document.getElementById('admin-tab-dashboard').classList.add('hide');
-                document.getElementById('admin-tab-gps').classList.remove('hide');
-                document.getElementById('admin-page-title').innerHTML = '<i data-lucide="map" class="w-5 h-5 text-slate-400"></i> GPS Tracking';
-                setTimeout(initAdminMap, 100);
+                document.getElementById('admin-tab-dashboard').classList.add('hide'); document.getElementById('admin-tab-gps').classList.remove('hide'); document.getElementById('admin-page-title').innerHTML = '<i data-lucide="map" class="w-5 h-5 text-slate-400"></i> GPS Tracking'; setTimeout(initAdminMap, 100);
             }
             lucide.createIcons();
         }
@@ -1103,110 +812,55 @@
         function startAdminClock() {
             if(adminClockInterval) clearInterval(adminClockInterval);
             const clockEl = document.getElementById('admin-clock');
-            adminClockInterval = setInterval(() => {
-                const now = new Date();
-                clockEl.innerText = now.toLocaleTimeString('th-TH');
-            }, 1000);
+            adminClockInterval = setInterval(() => { const now = new Date(); clockEl.innerText = now.toLocaleTimeString('th-TH'); }, 1000);
         }
 
-        // --- Mock Fetch for Dashboard (Simulates loading data) ---
         async function fetchDashboardData() {
-            // In a real app, this would fetch from GAS. Here we just mock the update.
             document.getElementById('dash-table-body').style.opacity = '0.5';
-            setTimeout(() => {
-                document.getElementById('dash-moving').innerText = Math.floor(Math.random() * 5) + 1; // Random 1-5 cars
-                document.getElementById('dash-table-body').style.opacity = '1';
-            }, 800);
+            setTimeout(() => { document.getElementById('dash-moving').innerText = Math.floor(Math.random() * 5) + 1; document.getElementById('dash-table-body').style.opacity = '1'; }, 800);
         }
 
-        // --- Admin GPS Map ---
         function initAdminMap() {
             if(!mapInstance) {
                 mapInstance = L.map('real-map-container', { zoomControl: false }).setView([13.65, 100.65], 10);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                    attribution: '&copy; OpenStreetMap', subdomains: 'abcd', maxZoom: 20
-                }).addTo(mapInstance);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap', subdomains: 'abcd', maxZoom: 20 }).addTo(mapInstance);
                 L.control.zoom({ position: 'bottomright' }).addTo(mapInstance);
             }
-            mapInstance.invalidateSize();
-            startAdminGPS();
+            mapInstance.invalidateSize(); startAdminGPS();
         }
 
-        function startAdminGPS() {
-            fetchFleetGPS();
-            if(!adminGpsInterval) adminGpsInterval = setInterval(fetchFleetGPS, 10000);
-        }
-        function stopAdminGPS() {
-            if(adminGpsInterval) { clearInterval(adminGpsInterval); adminGpsInterval = null; }
-        }
+        function startAdminGPS() { fetchFleetGPS(); if(!adminGpsInterval) adminGpsInterval = setInterval(fetchFleetGPS, 10000); }
+        function stopAdminGPS() { if(adminGpsInterval) { clearInterval(adminGpsInterval); adminGpsInterval = null; } }
 
         async function fetchFleetGPS() {
             try {
                 const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getFleetGPS" }) });
                 const result = await response.json();
-                if(result.status === "success") { updateAdminMap(result.data); }
+                if(result.status === "success") { updateAdminMap(result.data); document.getElementById('admin-last-update').innerText = "อัปเดต: " + new Date().toLocaleTimeString('th-TH'); }
             } catch(e) { console.log('Error fetching fleet GPS', e); }
         }
 
         function updateAdminMap(fleetData) {
-            document.getElementById('gps-update-time').innerText = new Date().toLocaleTimeString('th-TH');
-            
-            // Clear old markers
-            if(mapInstance && mapInstance.markers) { mapInstance.markers.forEach(m => m.remove()); }
-            mapInstance.markers = [];
-            
-            const fleetList = document.getElementById('admin-fleet-list');
-            fleetList.innerHTML = '';
-
-            if(!fleetData || fleetData.length === 0) {
-                fleetList.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-slate-500 opacity-50 space-y-3 pt-10"><i data-lucide="radar" class="w-10 h-10 animate-pulse"></i><p class="text-sm">ยังไม่มีรถที่กำลังวิ่งงานในระบบ</p></div>`;
-                lucide.createIcons();
-                return;
-            }
+            if(mapInstance && mapInstance.markers) { mapInstance.markers.forEach(m => m.remove()); } mapInstance.markers = [];
+            const fleetList = document.getElementById('admin-fleet-list'); fleetList.innerHTML = '';
+            if(!fleetData || fleetData.length === 0) { fleetList.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-slate-500 opacity-50 space-y-3 pt-10"><i data-lucide="radar" class="w-10 h-10 animate-pulse"></i><p class="text-sm">ยังไม่มีรถที่กำลังวิ่งงานในระบบ</p></div>`; lucide.createIcons(); return; }
 
             const bounds = L.latLngBounds();
-
             fleetData.forEach(truck => {
                 const lat = parseFloat(truck.lat); const lng = parseFloat(truck.lng);
-                if(isNaN(lat) || isNaN(lng)) return;
-                
-                bounds.extend([lat, lng]);
-
+                if(isNaN(lat) || isNaN(lng)) return; bounds.extend([lat, lng]);
+                const driverName = truck.driverName || "ไม่ระบุชื่อ"; const plateNo = truck.plate || "ไม่ระบุทะเบียน";
                 const customIcon = L.divIcon({
                     className: 'custom-marker',
-                    html: `<div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white border-2 border-slate-900 shadow-[0_0_15px_rgba(59,130,246,0.8)] relative">
-                            <div class="absolute inset-0 rounded-full border border-blue-400 animate-ping"></div>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5"/><path d="M14 17h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
-                           </div>`,
+                    html: `<div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white border-2 border-slate-900 shadow-[0_0_15px_rgba(59,130,246,0.8)] relative"><div class="absolute inset-0 rounded-full border border-blue-400 animate-ping"></div><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5"/><path d="M14 17h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>`,
                     iconSize: [40, 40], iconAnchor: [20, 20], popupAnchor: [0, -20]
                 });
-
-                const marker = L.marker([lat, lng], { icon: customIcon }).addTo(mapInstance)
-                    .bindPopup(`<div class="text-center font-sans">
-                        <strong class="text-sm text-slate-800">${truck.plate}</strong><br/>
-                        <span class="text-xs text-slate-500">${truck.driverName}</span><br/>
-                        <span class="text-xs text-blue-600 font-bold mt-1 inline-block">Doc: ${truck.docNo}</span>
-                    </div>`);
-                
-                mapInstance.markers.push(marker);
-
-                fleetList.innerHTML += `
-                    <div class="p-3 mb-2 rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-800 cursor-pointer transition-colors" onclick="mapInstance.setView([${lat}, ${lng}], 15)">
-                        <div class="flex justify-between items-start mb-1">
-                            <span class="font-bold text-sm text-white">${truck.plate}</span>
-                            <span class="text-[10px] px-2 py-0.5 rounded border border-blue-500/30 bg-blue-500/10 text-blue-400">กำลังวิ่ง</span>
-                        </div>
-                        <p class="text-xs text-slate-400">${truck.driverName}</p>
-                        <div class="mt-2 text-[10px] text-slate-500 flex items-center justify-between">
-                            <span class="truncate pr-2">Doc: ${truck.docNo}</span>
-                            <span class="shrink-0 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${truck.timestamp.split(' ')[1]}</span>
-                        </div>
-                    </div>
-                `;
+                const popupContent = `<div style="text-align: center; font-family: 'Prompt', sans-serif;"><strong style="font-size: 14px; color: #1e293b;">${plateNo}</strong><br/><span style="font-size: 12px; color: #64748b;">พขร: ${driverName}</span><br/><span style="font-size: 10px; color: #94a3b8;">ล่าสุด: ${truck.timestamp}</span></div>`;
+                if (adminMarkers[truck.docNo]) { adminMarkers[truck.docNo].setLatLng([lat, lng]); adminMarkers[truck.docNo].setPopupContent(popupContent); } 
+                else { const marker = L.marker([lat, lng], { icon: customIcon }).addTo(mapInstance).bindPopup(popupContent); adminMarkers[truck.docNo] = marker; }
+                fleetList.innerHTML += `<div class="p-3 mb-2 rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-800 cursor-pointer transition-colors" onclick="mapInstance.setView([${lat}, ${lng}], 15)"><div class="flex justify-between items-start mb-1"><span class="font-bold text-sm text-white">${plateNo}</span><span class="text-[10px] px-2 py-0.5 rounded border border-blue-500/30 bg-blue-500/10 text-blue-400">กำลังวิ่ง</span></div><p class="text-xs text-slate-400">${driverName}</p><div class="mt-2 text-[10px] text-slate-500 flex items-center justify-between"><span class="truncate pr-2">Doc: ${truck.docNo}</span><span class="shrink-0 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${truck.timestamp.split(' ')[1]}</span></div></div>`;
             });
-            
-            lucide.createIcons();
-            if(mapInstance.markers.length > 0) mapInstance.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+            lucide.createIcons(); if(mapInstance.markers.length > 0) mapInstance.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
         }
     </script>
 </body>
