@@ -40,8 +40,6 @@
         .hide { display: none !important; }
         #reader { width: 100%; overflow: hidden; border: none; }
         #reader video { object-fit: cover; border-radius: 1rem; }
-        #reader__dashboard_section_csr span { color: transparent !important; }
-        #reader__dashboard_section_swaplink { display: none !important; }
 
         /* Numpad Style */
         .pin-btn {
@@ -54,8 +52,8 @@
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center bg-slate-900">
@@ -99,7 +97,7 @@
                         <div class="text-left"><p class="font-bold text-slate-800">ลูกค้า (เช็คพัสดุ)</p></div>
                     </button>
                     <button onclick="handleLogin('admin')" class="w-full p-4 border-2 border-slate-200 hover:border-slate-800 hover:bg-slate-50 rounded-xl flex items-center gap-4 transition-all">
-                        <i data-lucide="layout-dashboard" class="text-slate-800 w-6 h-6"></i>
+                        <i data-lucide="map" class="text-slate-800 w-6 h-6"></i>
                         <div class="text-left"><p class="font-bold text-slate-800">ผู้ดูแลระบบ (Admin)</p></div>
                     </button>
                 </div>
@@ -290,75 +288,37 @@
             </div>
         </div>
 
-        <!-- ==================== VIEW 3: ADMIN DASHBOARD ==================== -->
-        <div id="view-admin" class="flex-col h-full bg-[#0f172a] hide w-full max-w-7xl mx-auto overflow-hidden transition-all duration-300">
-            <div class="flex h-full w-full">
-                <!-- Sidebar -->
-                <aside class="w-64 bg-[#1e293b] border-r border-slate-800 flex flex-col hidden md:flex shrink-0">
-                    <div class="p-6 border-b border-slate-800 flex items-center gap-3">
-                        <img src="./logo.png" class="w-8 h-8 rounded bg-white p-0.5">
-                        <div><h1 class="font-bold text-white tracking-wide">DeliTrack</h1><p class="text-[10px] text-slate-400 font-mono">v1.0 PROTOTYPE</p></div>
-                    </div>
-                    <nav class="flex-grow p-4 space-y-1">
-                        <p class="text-xs font-bold text-slate-500 mb-3 ml-2 uppercase tracking-wider">หลัก</p>
-                        <button onclick="switchAdminTab('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-4 py-3 bg-blue-600/10 text-blue-400 rounded-xl font-medium transition-colors"><i data-lucide="layout-dashboard" class="w-5 h-5"></i> ภาพรวม</button>
-                        <button onclick="switchAdminTab('gps')" id="nav-gps" class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-medium transition-colors"><i data-lucide="map" class="w-5 h-5"></i> GPS Tracking</button>
-                    </nav>
-                    <div class="p-4 border-t border-slate-800">
-                        <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl hover:bg-slate-800 cursor-pointer" onclick="handleLogoutConfirm()">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 border border-slate-600"><i data-lucide="user" class="w-4 h-4"></i></div>
-                                <div><p class="text-sm font-bold text-white">Admin</p></div>
-                            </div>
-                            <i data-lucide="log-out" class="w-4 h-4 text-slate-500 hover:text-red-400"></i>
-                        </div>
-                    </div>
-                </aside>
+        <!-- ==================== VIEW 3: ADMIN (SIMPLE VIEW) ==================== -->
+        <div id="view-admin" class="flex-col h-full bg-slate-50 hide w-full h-screen overflow-hidden">
+            <header class="bg-[#1e293b] text-white p-4 flex items-center justify-between z-20 shadow-md shrink-0">
+                <div class="flex items-center gap-2">
+                    <img src="./logo.png" class="w-8 h-8 rounded bg-white p-0.5">
+                    <h1 class="font-bold text-lg tracking-wide">Admin Fleet Tracking</h1>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-xs bg-slate-800 px-2 py-1 rounded text-slate-300 border border-slate-700 hidden md:block" id="gps-update-time">รออัปเดต...</span>
+                    <button onclick="handleLogoutConfirm()" class="flex items-center gap-2 px-3 py-1.5 bg-red-500 hover:bg-red-600 rounded-lg text-sm font-bold transition-colors">
+                        <i data-lucide="log-out" class="w-4 h-4"></i> <span class="hidden md:inline">ออกจากระบบ</span>
+                    </button>
+                </div>
+            </header>
 
-                <!-- Mobile Header Admin -->
-                <div class="md:hidden flex items-center justify-between p-4 bg-[#1e293b] border-b border-slate-800 w-full absolute top-0 z-50">
-                    <div class="flex items-center gap-2"><img src="./logo.png" class="w-6 h-6 rounded"><h1 class="font-bold text-white">Admin</h1></div>
-                    <div class="flex gap-2">
-                        <button onclick="switchAdminTab('dashboard')" class="p-2 text-slate-300"><i data-lucide="layout-dashboard" class="w-5 h-5"></i></button>
-                        <button onclick="switchAdminTab('gps')" class="p-2 text-slate-300"><i data-lucide="map" class="w-5 h-5"></i></button>
-                        <button onclick="handleLogoutConfirm()" class="p-2 text-red-400"><i data-lucide="log-out" class="w-5 h-5"></i></button>
+            <div class="flex-grow flex flex-col md:flex-row overflow-hidden relative">
+                <!-- Fleet List Panel -->
+                <div class="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col h-1/3 md:h-full z-10 shrink-0 shadow-lg">
+                    <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                        <h2 class="font-bold text-slate-800 flex items-center gap-2"><i data-lucide="truck" class="w-5 h-5 text-blue-600"></i> รถกำลังวิ่งงาน</h2>
+                    </div>
+                    <div class="flex-grow overflow-y-auto p-3 bg-slate-50" id="admin-fleet-list">
+                        <div class="flex flex-col items-center justify-center h-full text-slate-400 space-y-3 pt-10">
+                            <i data-lucide="radar" class="w-10 h-10 animate-pulse text-blue-400"></i>
+                            <p class="text-sm">กำลังค้นหาสัญญาณรถ...</p>
+                        </div>
                     </div>
                 </div>
-
-                <!-- Main Content Area -->
-                <main class="flex-grow flex flex-col h-full overflow-hidden pt-14 md:pt-0">
-                    <header class="h-16 border-b border-slate-800 bg-[#0f172a] flex items-center justify-between px-8 shrink-0 hidden md:flex">
-                        <h2 id="admin-page-title" class="text-white font-bold flex items-center gap-2"><i data-lucide="layout-dashboard" class="w-5 h-5 text-slate-400"></i> ภาพรวม</h2>
-                        <div class="px-3 py-1 bg-slate-800 rounded text-slate-300 font-mono text-sm border border-slate-700" id="admin-clock">00:00:00</div>
-                    </header>
-
-                    <!-- TAB 1: Dashboard -->
-                    <div id="admin-tab-dashboard" class="flex-grow p-4 md:p-8 overflow-y-auto space-y-6">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div class="col-span-1 md:col-span-3 bg-[#1e293b] rounded-xl border border-slate-800 p-8 text-center text-slate-400">
-                                <h2 class="text-white font-bold text-lg mb-2">ยินดีต้อนรับสู่ระบบหลังบ้าน</h2>
-                                <p>สามารถดูรถที่วิ่งอยู่จริงได้ที่เมนู GPS Tracking</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- TAB 2: GPS Tracking -->
-                    <div id="admin-tab-gps" class="flex-grow flex flex-col md:flex-row overflow-hidden hide">
-                        <div class="w-full md:w-80 bg-[#1e293b] border-r border-slate-800 flex flex-col h-1/3 md:h-full z-10 shrink-0">
-                            <div class="p-4 border-b border-slate-800 bg-[#1e293b] flex justify-between items-center">
-                                <h2 class="font-bold text-white flex items-center gap-2"><i data-lucide="truck" class="w-4 h-4 text-blue-400"></i> รถกำลังวิ่งงาน</h2>
-                                <span class="text-[10px] bg-slate-800 px-2 py-1 rounded text-slate-400 border border-slate-700" id="gps-update-time">รออัปเดต...</span>
-                            </div>
-                            <div class="flex-grow overflow-y-auto p-2" id="admin-fleet-list">
-                                <div class="flex flex-col items-center justify-center h-full text-slate-500 opacity-50 space-y-3">
-                                    <i data-lucide="radar" class="w-10 h-10 animate-pulse"></i>
-                                    <p class="text-sm">กำลังค้นหาสัญญาณรถ...</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex-grow bg-[#0f172a] relative overflow-hidden h-2/3 md:h-full z-0" id="real-map-container"></div>
-                    </div>
-                </main>
+                
+                <!-- Map Area -->
+                <div class="flex-grow bg-slate-200 relative overflow-hidden h-2/3 md:h-full z-0" id="real-map-container"></div>
             </div>
         </div>
 
@@ -371,20 +331,12 @@
         // ---------------------------------------------------------
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyPb09gXXhWwbSpHZk07A53l5Dow2-M5iNcoIsN6wPK4P8hrFxpiLSWjaYYJLvdLFES/exec";
 
-        // ฟังก์ชันคำนวณระยะทาง Haversine Formula (กิโลเมตร)
         function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-            // ตรวจสอบค่าพิกัดให้แน่ใจว่าไม่เป็นค่าที่ผิดพลาด
             if (!lat1 || !lon1 || !lat2 || !lon2) return null;
-            
-            const lat1Num = parseFloat(lat1);
-            const lon1Num = parseFloat(lon1);
-            const lat2Num = parseFloat(lat2);
-            const lon2Num = parseFloat(lon2);
-
-            // ถ้าพิกัดที่ดึงมาแปลงเป็นตัวเลขไม่ได้ ให้คืนค่า null เพื่อไม่ให้ขึ้น NaN
+            const lat1Num = parseFloat(lat1); const lon1Num = parseFloat(lon1); const lat2Num = parseFloat(lat2); const lon2Num = parseFloat(lon2);
             if (isNaN(lat1Num) || isNaN(lon1Num) || isNaN(lat2Num) || isNaN(lon2Num)) return null;
 
-            var R = 6371; // รัศมีโลกในหน่วยกิโลเมตร
+            var R = 6371; 
             var dLat = (lat2Num - lat1Num) * (Math.PI/180); 
             var dLon = (lon2Num - lon1Num) * (Math.PI/180);
             var a = Math.sin(dLat/2) * Math.sin(dLat/2) + 
@@ -447,7 +399,7 @@
         let routeData = JSON.parse(localStorage.getItem('deliveryRouteData')) || null;
         let isDriverUnlocked = false; let currentPin = "";
         let html5QrCode = null; let mapInstance = null; let adminMarkers = {};
-        let gpsInterval = null; let adminGpsInterval = null; let adminClockInterval = null;
+        let gpsInterval = null; let adminGpsInterval = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons(); updateAppView();
@@ -461,7 +413,7 @@
                 currentRole = null; driverInfo = null; isDriverUnlocked = false; currentPin = "";
                 localStorage.removeItem('deliveryAppRole'); localStorage.removeItem('deliveryDriverInfo');
                 if(html5QrCode && html5QrCode.isScanning) html5QrCode.stop().catch(e => console.error(e));
-                stopGPS(); stopAdminGPS(); clearInterval(adminClockInterval); updateAppView();
+                stopGPS(); stopAdminGPS(); updateAppView();
             });
         }
 
@@ -477,9 +429,9 @@
             const container = document.getElementById('app-container');
             
             if(currentRole === 'admin') {
-                container.className = "w-full bg-[#0f172a] overflow-hidden relative flex flex-col transition-all duration-500 h-screen w-full max-w-none rounded-none border-none mt-0";
+                container.className = "w-full bg-slate-50 overflow-hidden relative flex flex-col h-screen max-w-none rounded-none border-none mt-0";
                 document.getElementById('view-admin').classList.remove('hide'); document.getElementById('view-admin').classList.add('flex');
-                switchAdminTab('dashboard'); startAdminClock();
+                setTimeout(initAdminMap, 100);
             } else {
                 container.className = "w-full bg-white overflow-hidden relative flex flex-col transition-all duration-500 h-screen max-w-md shadow-2xl sm:border-[8px] sm:border-slate-800 sm:rounded-[2.5rem] sm:h-[850px] sm:mt-10";
                 if (currentRole === 'driver') {
@@ -534,7 +486,6 @@
                 if(result.status === "success") {
                     driverInfo = { ...result.data.driver, pin: payload.password };
                     localStorage.setItem('deliveryDriverInfo', JSON.stringify(driverInfo));
-                    // ข้ามระบบแสกนหน้าเข้าสู่ระบบเลย
                     isDriverUnlocked = true; 
                     updateAppView();
                 } else { showCustomModal('error', 'ผิดพลาด', result.message); }
@@ -698,7 +649,6 @@
 
             const dot = document.getElementById('cus-dest-dot'); const check = document.getElementById('cus-dest-check'); const title = document.getElementById('cus-dest-title'); const badge = document.getElementById('cus-badge'); const timestamp = document.getElementById('cus-timestamp');
             
-            // คำนวณระยะทางและตรวจเช็ค NaN
             const distKm = getDistanceFromLatLonInKm(data.driverLat, data.driverLng, data.custLat, data.custLng);
             
             if (distKm !== null && !isCompleted) {
@@ -718,28 +668,12 @@
             document.getElementById('customer-search-state').classList.add('hide'); document.getElementById('customer-result-state').classList.remove('hide'); document.getElementById('customer-result-state').classList.add('flex'); lucide.createIcons();
         }
 
-        function switchAdminTab(tabName) {
-            const btnDash = document.getElementById('nav-dashboard'); const btnGps = document.getElementById('nav-gps');
-            if(btnDash) btnDash.className = tabName === 'dashboard' ? "w-full flex items-center gap-3 px-4 py-3 bg-blue-600/10 text-blue-400 rounded-xl font-medium transition-colors" : "w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-medium transition-colors";
-            if(btnGps) btnGps.className = tabName === 'gps' ? "w-full flex items-center gap-3 px-4 py-3 bg-blue-600/10 text-blue-400 rounded-xl font-medium transition-colors" : "w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-medium transition-colors";
-            if(tabName === 'dashboard') {
-                document.getElementById('admin-tab-dashboard').classList.remove('hide'); document.getElementById('admin-tab-gps').classList.add('hide'); document.getElementById('admin-page-title').innerHTML = '<i data-lucide="layout-dashboard" class="w-5 h-5 text-slate-400"></i> ภาพรวม'; stopAdminGPS();
-            } else if (tabName === 'gps') {
-                document.getElementById('admin-tab-dashboard').classList.add('hide'); document.getElementById('admin-tab-gps').classList.remove('hide'); document.getElementById('admin-page-title').innerHTML = '<i data-lucide="map" class="w-5 h-5 text-slate-400"></i> GPS Tracking'; setTimeout(initAdminMap, 100);
-            }
-            lucide.createIcons();
-        }
-
-        function startAdminClock() {
-            if(adminClockInterval) clearInterval(adminClockInterval);
-            const clockEl = document.getElementById('admin-clock');
-            adminClockInterval = setInterval(() => { const now = new Date(); clockEl.innerText = now.toLocaleTimeString('th-TH'); }, 1000);
-        }
-
+        // --- Admin Map Initialization ---
         function initAdminMap() {
             if(!mapInstance) {
+                // ใช้ OpenStreetMap แบบปกติสีสว่าง เพื่อความเรียบง่ายและดูง่าย
                 mapInstance = L.map('real-map-container', { zoomControl: false }).setView([13.65, 100.65], 10);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap', subdomains: 'abcd', maxZoom: 20 }).addTo(mapInstance);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 }).addTo(mapInstance);
                 L.control.zoom({ position: 'bottomright' }).addTo(mapInstance);
             }
             mapInstance.invalidateSize(); startAdminGPS();
@@ -752,29 +686,58 @@
             try {
                 const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getFleetGPS" }) });
                 const result = await response.json();
-                if(result.status === "success") { updateAdminMap(result.data); document.getElementById('gps-update-time').innerText = "อัปเดต: " + new Date().toLocaleTimeString('th-TH'); }
+                if(result.status === "success") { 
+                    updateAdminMap(result.data); 
+                    const timeEl = document.getElementById('gps-update-time');
+                    if(timeEl) timeEl.innerText = "อัปเดต: " + new Date().toLocaleTimeString('th-TH'); 
+                }
             } catch(e) { console.log('Error fetching fleet GPS', e); }
         }
 
         function updateAdminMap(fleetData) {
             if(mapInstance && mapInstance.markers) { mapInstance.markers.forEach(m => m.remove()); } mapInstance.markers = [];
             const fleetList = document.getElementById('admin-fleet-list'); fleetList.innerHTML = '';
-            if(!fleetData || fleetData.length === 0) { fleetList.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-slate-500 opacity-50 space-y-3 pt-10"><i data-lucide="radar" class="w-10 h-10 animate-pulse"></i><p class="text-sm">ยังไม่มีรถที่กำลังวิ่งงานในระบบ</p></div>`; lucide.createIcons(); return; }
+            
+            if(!fleetData || fleetData.length === 0) { 
+                fleetList.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-slate-400 space-y-3 pt-10"><i data-lucide="radar" class="w-10 h-10 animate-pulse text-blue-400"></i><p class="text-sm">ยังไม่มีรถที่กำลังวิ่งงานในระบบ</p></div>`; 
+                lucide.createIcons(); return; 
+            }
 
             const bounds = L.latLngBounds();
             fleetData.forEach(truck => {
                 const lat = parseFloat(truck.lat); const lng = parseFloat(truck.lng);
                 if(isNaN(lat) || isNaN(lng)) return; bounds.extend([lat, lng]);
                 const driverName = truck.driverName || "ไม่ระบุชื่อ"; const plateNo = truck.plate || "ไม่ระบุทะเบียน";
+                
                 const customIcon = L.divIcon({
                     className: 'custom-marker',
-                    html: `<div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white border-2 border-slate-900 shadow-[0_0_15px_rgba(59,130,246,0.8)] relative"><div class="absolute inset-0 rounded-full border border-blue-400 animate-ping"></div><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5"/><path d="M14 17h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>`,
+                    html: `<div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white border-2 border-white shadow-md relative"><div class="absolute inset-0 rounded-full border border-blue-400 animate-ping"></div><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5"/><path d="M14 17h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>`,
                     iconSize: [40, 40], iconAnchor: [20, 20], popupAnchor: [0, -20]
                 });
+                
                 const popupContent = `<div style="text-align: center; font-family: 'Prompt', sans-serif;"><strong style="font-size: 14px; color: #1e293b;">${plateNo}</strong><br/><span style="font-size: 12px; color: #64748b;">พขร: ${driverName}</span><br/><span style="font-size: 10px; color: #94a3b8;">ล่าสุด: ${truck.timestamp}</span></div>`;
-                if (adminMarkers[truck.docNo]) { adminMarkers[truck.docNo].setLatLng([lat, lng]); adminMarkers[truck.docNo].setPopupContent(popupContent); } 
-                else { const marker = L.marker([lat, lng], { icon: customIcon }).addTo(mapInstance).bindPopup(popupContent); adminMarkers[truck.docNo] = marker; }
-                fleetList.innerHTML += `<div class="p-3 mb-2 rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-800 cursor-pointer transition-colors" onclick="mapInstance.setView([${lat}, ${lng}], 15)"><div class="flex justify-between items-start mb-1"><span class="font-bold text-sm text-white">${plateNo}</span><span class="text-[10px] px-2 py-0.5 rounded border border-blue-500/30 bg-blue-500/10 text-blue-400">กำลังวิ่ง</span></div><p class="text-xs text-slate-400">${driverName}</p><div class="mt-2 text-[10px] text-slate-500 flex items-center justify-between"><span class="truncate pr-2">Doc: ${truck.docNo}</span><span class="shrink-0 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${truck.timestamp.split(' ')[1]}</span></div></div>`;
+                
+                if (adminMarkers[truck.docNo]) { 
+                    adminMarkers[truck.docNo].setLatLng([lat, lng]); 
+                    adminMarkers[truck.docNo].setPopupContent(popupContent); 
+                } else { 
+                    const marker = L.marker([lat, lng], { icon: customIcon }).addTo(mapInstance).bindPopup(popupContent); 
+                    adminMarkers[truck.docNo] = marker; 
+                }
+                
+                // อัปเดต UI รายชื่อรถแบบสว่าง
+                fleetList.innerHTML += `
+                    <div class="p-4 mb-3 rounded-xl border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-200 cursor-pointer transition-all shadow-sm" onclick="mapInstance.setView([${lat}, ${lng}], 15)">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="font-bold text-sm text-slate-800">${plateNo}</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full border border-blue-200 bg-blue-50 text-blue-600 font-bold tracking-wider">กำลังวิ่ง</span>
+                        </div>
+                        <p class="text-xs text-slate-500 font-medium">${driverName}</p>
+                        <div class="mt-3 pt-3 border-t border-slate-100 text-[10px] text-slate-400 flex items-center justify-between">
+                            <span class="truncate pr-2 font-mono">Doc: ${truck.docNo}</span>
+                            <span class="shrink-0 flex items-center gap-1 font-bold"><i data-lucide="clock" class="w-3 h-3"></i> ${truck.timestamp.split(' ')[1]}</span>
+                        </div>
+                    </div>`;
             });
             lucide.createIcons(); if(mapInstance.markers.length > 0) mapInstance.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
         }
