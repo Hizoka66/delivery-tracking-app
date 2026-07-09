@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0f172a">
     
-    <!-- เปลี่ยนไอคอนแอปเป็นรูปโลโก้ของคุณ -->
+    <!-- ไอคอนแอป -->
     <link id="manifest-link" rel="manifest" href="">
     <link rel="apple-touch-icon" href="./logo.png?v=3">
 
@@ -40,6 +40,8 @@
         .hide { display: none !important; }
         #reader { width: 100%; overflow: hidden; border: none; }
         #reader video { object-fit: cover; border-radius: 1rem; }
+        #reader__dashboard_section_csr span { color: transparent !important; }
+        #reader__dashboard_section_swaplink { display: none !important; }
 
         /* Numpad Style */
         .pin-btn {
@@ -101,68 +103,6 @@
                         <div class="text-left"><p class="font-bold text-slate-800">ผู้ดูแลระบบ (Admin)</p></div>
                     </button>
                 </div>
-            </div>
-        </div>
-
-        <!-- ==================== VIEW 0.5: DRIVER AUTH ==================== -->
-        <div id="view-driver-auth" class="flex-col h-full bg-slate-100 items-center justify-start p-6 hide overflow-y-auto">
-            <button onclick="backToMain()" class="mb-4 text-slate-500 flex items-center gap-1 font-bold w-full"><i data-lucide="chevron-left" class="w-5 h-5"></i> กลับหน้าหลัก</button>
-            <div class="bg-white p-6 rounded-3xl shadow-xl w-full max-w-sm relative">
-                <div class="flex border-b border-slate-200 mb-6">
-                    <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-3 text-center font-bold text-blue-600 border-b-2 border-blue-600 transition-all">เข้าสู่ระบบ</button>
-                    <button id="tab-register" onclick="switchAuthTab('register')" class="flex-1 py-3 text-center font-bold text-slate-400 border-b-2 border-transparent transition-all">ลงทะเบียนใหม่</button>
-                </div>
-
-                <div id="form-login" class="space-y-4">
-                    <div><label class="text-sm font-bold text-slate-600">เบอร์โทรศัพท์</label><input type="tel" id="login-phone" class="w-full mt-1 p-3 border rounded-xl outline-none focus:border-blue-500 bg-slate-50" placeholder="08X-XXX-XXXX"></div>
-                    <div><label class="text-sm font-bold text-slate-600">รหัสผ่าน (PIN 6 หลัก)</label><input type="password" id="login-pass" class="w-full mt-1 p-3 border rounded-xl outline-none focus:border-blue-500 bg-slate-50 text-center tracking-[1em]" placeholder="••••••" maxlength="6"></div>
-                    <button id="btn-login" onclick="submitAuth('login')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl mt-4 flex justify-center items-center gap-2 shadow-md transition-colors">เข้าสู่ระบบ</button>
-                </div>
-
-                <div id="form-register" class="space-y-3 hide">
-                    <div><label class="text-xs font-bold text-slate-600">ชื่อ-นามสกุล</label><input type="text" id="reg-name" class="w-full mt-1 p-2 border rounded-lg outline-none focus:border-blue-500 bg-slate-50"></div>
-                    <div><label class="text-xs font-bold text-slate-600">ทะเบียนรถ</label><input type="text" id="reg-plate" class="w-full mt-1 p-2 border rounded-lg outline-none focus:border-blue-500 bg-slate-50" placeholder="1กข 1234 กทม"></div>
-                    <div><label class="text-xs font-bold text-slate-600">เบอร์โทรศัพท์</label><input type="tel" id="reg-phone" class="w-full mt-1 p-2 border rounded-lg outline-none focus:border-blue-500 bg-slate-50"></div>
-                    <div><label class="text-xs font-bold text-slate-600">ตั้งรหัสผ่าน (PIN 6 หลัก)</label><input type="password" id="reg-pass" class="w-full mt-1 p-2 border rounded-lg outline-none focus:border-blue-500 bg-slate-50 text-center tracking-widest" maxlength="6"></div>
-                    <button id="btn-register" onclick="submitAuth('register')" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl mt-2 flex justify-center items-center gap-2 shadow-md">ลงทะเบียนพนักงาน</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- ==================== VIEW 0.8: PIN LOCK SCREEN ==================== -->
-        <div id="view-pin-lock" class="flex-col h-full items-center justify-between p-6 hide relative bg-slate-900" style="background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);">
-            <div class="w-full flex justify-end pt-4">
-                <button onclick="handleLogoutConfirm()" class="text-slate-400 hover:text-white text-sm font-bold flex items-center gap-1"><i data-lucide="user-minus" class="w-4 h-4"></i> สลับบัญชี</button>
-            </div>
-            <div class="flex-col items-center justify-center text-center mt-8">
-                <div class="w-20 h-20 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-700 shadow-[0_0_15px_rgba(59,130,246,0.2)] overflow-hidden p-1">
-                    <img src="./logo.png" alt="Logo" class="w-full h-full object-cover rounded-xl">
-                </div>
-                <h2 class="text-white text-xl font-bold mb-1" id="pin-lock-name">สวัสดี</h2>
-                <p class="text-slate-400 text-sm">กรุณาใส่รหัส PIN 6 หลัก</p>
-                <div class="flex justify-center gap-4 my-8" id="pin-dots">
-                    <div class="w-4 h-4 rounded-full border-2 border-slate-600 transition-colors"></div>
-                    <div class="w-4 h-4 rounded-full border-2 border-slate-600 transition-colors"></div>
-                    <div class="w-4 h-4 rounded-full border-2 border-slate-600 transition-colors"></div>
-                    <div class="w-4 h-4 rounded-full border-2 border-slate-600 transition-colors"></div>
-                    <div class="w-4 h-4 rounded-full border-2 border-slate-600 transition-colors"></div>
-                    <div class="w-4 h-4 rounded-full border-2 border-slate-600 transition-colors"></div>
-                </div>
-                <p id="pin-error-msg" class="text-red-400 text-sm font-bold h-5"></p>
-            </div>
-            <div class="grid grid-cols-3 gap-y-6 gap-x-8 max-w-[280px] mx-auto text-white pb-10">
-                <button onclick="pressPin('1')" class="pin-btn hover:bg-white/10">1</button>
-                <button onclick="pressPin('2')" class="pin-btn hover:bg-white/10">2</button>
-                <button onclick="pressPin('3')" class="pin-btn hover:bg-white/10">3</button>
-                <button onclick="pressPin('4')" class="pin-btn hover:bg-white/10">4</button>
-                <button onclick="pressPin('5')" class="pin-btn hover:bg-white/10">5</button>
-                <button onclick="pressPin('6')" class="pin-btn hover:bg-white/10">6</button>
-                <button onclick="pressPin('7')" class="pin-btn hover:bg-white/10">7</button>
-                <button onclick="pressPin('8')" class="pin-btn hover:bg-white/10">8</button>
-                <button onclick="pressPin('9')" class="pin-btn hover:bg-white/10">9</button>
-                <div></div>
-                <button onclick="pressPin('0')" class="pin-btn hover:bg-white/10">0</button>
-                <button onclick="deletePin()" class="pin-btn hover:bg-white/10"><i data-lucide="delete" class="w-8 h-8 text-slate-400"></i></button>
             </div>
         </div>
 
@@ -397,7 +337,6 @@
         let currentRole = localStorage.getItem('deliveryAppRole');
         let driverInfo = JSON.parse(localStorage.getItem('deliveryDriverInfo')) || null;
         let routeData = JSON.parse(localStorage.getItem('deliveryRouteData')) || null;
-        let isDriverUnlocked = false; let currentPin = "";
         let html5QrCode = null; let mapInstance = null; let adminMarkers = {};
         let gpsInterval = null; let adminGpsInterval = null;
 
@@ -410,7 +349,7 @@
         function backToMain() { currentRole = null; updateAppView(); }
         function handleLogoutConfirm() {
             showCustomModal('confirm', 'ออกจากระบบ', 'คุณต้องการออกจากระบบ หรือสลับบัญชีใช่หรือไม่?', () => {
-                currentRole = null; driverInfo = null; isDriverUnlocked = false; currentPin = "";
+                currentRole = null; driverInfo = null;
                 localStorage.removeItem('deliveryAppRole'); localStorage.removeItem('deliveryDriverInfo');
                 if(html5QrCode && html5QrCode.isScanning) html5QrCode.stop().catch(e => console.error(e));
                 stopGPS(); stopAdminGPS(); updateAppView();
@@ -419,8 +358,6 @@
 
         function updateAppView() {
             document.getElementById('view-login').classList.add('hide'); 
-            document.getElementById('view-driver-auth').classList.add('hide');
-            document.getElementById('view-pin-lock').classList.add('hide'); 
             document.getElementById('view-driver').classList.add('hide'); 
             document.getElementById('view-customer').classList.add('hide');
             document.getElementById('view-admin').classList.add('hide'); 
@@ -435,20 +372,12 @@
             } else {
                 container.className = "w-full bg-white overflow-hidden relative flex flex-col transition-all duration-500 h-screen max-w-md shadow-2xl sm:border-[8px] sm:border-slate-800 sm:rounded-[2.5rem] sm:h-[850px] sm:mt-10";
                 if (currentRole === 'driver') {
-                    if (driverInfo && driverInfo.phone) {
-                        localStorage.setItem('deliveryAppRole', 'driver');
-                        if (isDriverUnlocked) {
-                            document.getElementById('view-driver').classList.remove('hide'); document.getElementById('view-driver').classList.add('flex');
-                            document.getElementById('driver-profile-name').innerText = driverInfo.name;
-                            document.getElementById('driver-profile-plate').innerText = "ทะเบียน: " + driverInfo.plate;
-                            renderDriverState(); startGPS();
-                        } else {
-                            document.getElementById('pin-lock-name').innerText = "สวัสดี, " + driverInfo.name.split(' ')[0];
-                            resetPinPad(); document.getElementById('view-pin-lock').classList.remove('hide'); document.getElementById('view-pin-lock').classList.add('flex');
-                        }
-                    } else {
-                        document.getElementById('view-driver-auth').classList.remove('hide'); document.getElementById('view-driver-auth').classList.add('flex'); switchAuthTab('login');
-                    }
+                    // จำลองข้อมูลพนักงานขับรถเพื่อข้ามหน้า Login เข้าสู่ระบบสแกนงานทันที
+                    driverInfo = { name: "พนักงานขับรถ (ทดสอบ)", plate: "1กข 9999", phone: "0800000000" };
+                    document.getElementById('view-driver').classList.remove('hide'); document.getElementById('view-driver').classList.add('flex');
+                    document.getElementById('driver-profile-name').innerText = driverInfo.name;
+                    document.getElementById('driver-profile-plate').innerText = "ทะเบียน: " + driverInfo.plate;
+                    renderDriverState(); startGPS();
                 } else if (currentRole === 'customer') {
                     document.getElementById('view-customer').classList.remove('hide'); document.getElementById('view-customer').classList.add('flex'); backToCustomerSearch();
                 } else {
@@ -456,64 +385,6 @@
                 }
             }
             lucide.createIcons();
-        }
-
-        function switchAuthTab(tab) {
-            if(tab === 'login') {
-                document.getElementById('tab-login').className = "flex-1 py-3 text-center font-bold text-blue-600 border-b-2 border-blue-600 transition-all"; document.getElementById('tab-register').className = "flex-1 py-3 text-center font-bold text-slate-400 border-b-2 border-transparent transition-all";
-                document.getElementById('form-login').classList.remove('hide'); document.getElementById('form-register').classList.add('hide');
-            } else {
-                document.getElementById('tab-register').className = "flex-1 py-3 text-center font-bold text-blue-600 border-b-2 border-blue-600 transition-all"; document.getElementById('tab-login').className = "flex-1 py-3 text-center font-bold text-slate-400 border-b-2 border-transparent transition-all";
-                document.getElementById('form-register').classList.remove('hide'); document.getElementById('form-login').classList.add('hide');
-            }
-        }
-
-        async function submitAuth(action) {
-            let payload = {}; let btnId = action === 'login' ? 'btn-login' : 'btn-register'; let originalText = document.getElementById(btnId).innerHTML;
-            if (action === 'login') {
-                payload = { phone: document.getElementById('login-phone').value.trim(), password: document.getElementById('login-pass').value.trim() };
-                if (!payload.phone || payload.password.length !== 6) return showCustomModal('alert', 'ข้อมูลไม่ครบ', "กรุณากรอกเบอร์โทร และ รหัส PIN ให้ครบ 6 หลัก");
-            } else {
-                payload = { name: document.getElementById('reg-name').value.trim(), plate: document.getElementById('reg-plate').value.trim(), phone: document.getElementById('reg-phone').value.trim(), password: document.getElementById('reg-pass').value.trim() };
-                if (!payload.name || !payload.plate || !payload.phone || payload.password.length !== 6) return showCustomModal('alert', 'ข้อมูลไม่ครบ', "กรุณากรอกข้อมูลให้ครบ และตั้งรหัส PIN 6 หลัก");
-            }
-
-            document.getElementById(btnId).innerHTML = '<i data-lucide="loader-2" class="animate-spin w-5 h-5"></i> กำลังตรวจสอบ...'; document.getElementById(btnId).disabled = true; lucide.createIcons();
-
-            try {
-                const response = await fetch(WEB_APP_URL, { method: "POST", mode: "cors", body: JSON.stringify({ action: action === 'login' ? "loginDriver" : "registerDriver", data: payload }) });
-                const result = await response.json();
-                if(result.status === "success") {
-                    driverInfo = { ...result.data.driver, pin: payload.password };
-                    localStorage.setItem('deliveryDriverInfo', JSON.stringify(driverInfo));
-                    isDriverUnlocked = true; 
-                    updateAppView();
-                } else { showCustomModal('error', 'ผิดพลาด', result.message); }
-            } catch (error) { showCustomModal('error', 'เชื่อมต่อล้มเหลว', "ไม่สามารถเชื่อมต่อฐานข้อมูลได้"); } 
-            finally { document.getElementById(btnId).innerHTML = originalText; document.getElementById(btnId).disabled = false; lucide.createIcons(); }
-        }
-
-        function pressPin(num) { if (currentPin.length < 6) { currentPin += num; updatePinUI(); if (currentPin.length === 6) setTimeout(verifyPin, 100); } }
-        function deletePin() { if (currentPin.length > 0) { currentPin = currentPin.slice(0, -1); updatePinUI(); } }
-        function updatePinUI() {
-            const dots = document.getElementById('pin-dots').children;
-            for(let i=0; i<6; i++) {
-                if (i < currentPin.length) dots[i].className = "w-4 h-4 rounded-full bg-blue-400 border-2 border-blue-400 transition-colors shadow-[0_0_10px_rgba(59,130,246,0.8)]";
-                else dots[i].className = "w-4 h-4 rounded-full border-2 border-slate-600 transition-colors";
-            }
-            document.getElementById('pin-error-msg').innerText = "";
-        }
-        function resetPinPad() { currentPin = ""; updatePinUI(); }
-        
-        function verifyPin() {
-            if (currentPin === driverInfo.pin) { 
-                isDriverUnlocked = true; 
-                updateAppView();
-            } else {
-                const dotsContainer = document.getElementById('pin-dots'); document.getElementById('pin-error-msg').innerText = "รหัส PIN ไม่ถูกต้อง";
-                dotsContainer.classList.remove('animate-shake'); void dotsContainer.offsetWidth; dotsContainer.classList.add('animate-shake');
-                setTimeout(resetPinPad, 500);
-            }
         }
 
         function renderDriverState() {
