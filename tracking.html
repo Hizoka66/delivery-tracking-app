@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#064e3b">
+  <title>ติดตามการจัดส่ง</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body, button, input { font-family: "Prompt", sans-serif; }
+    body { margin: 0; color: #0f172a; background: #f1f5f9; }
+    .soft-shadow { box-shadow: 0 18px 55px rgba(15, 23, 42, .10); }
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header class="bg-slate-950 text-white">
+    <div class="max-w-5xl mx-auto px-5 py-5 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3 min-w-0">
+        <span class="w-11 h-11 rounded-2xl bg-emerald-500 grid place-items-center shrink-0">
+          <i data-lucide="package-check" class="w-6 h-6"></i>
+        </span>
+        <div class="min-w-0">
+          <h1 class="font-bold truncate">Delivery Tracking</h1>
+          <p class="text-xs text-slate-400">ระบบติดตามสถานะการจัดส่งสินค้า</p>
+        </div>
+      </div>
+      <span class="hidden sm:inline-flex items-center gap-2 text-xs text-emerald-300">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        Customer Portal
+      </span>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-6 md:py-10">
+    <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-700 to-teal-900 text-white p-6 md:p-9 soft-shadow">
+      <div class="absolute -right-16 -top-20 w-60 h-60 rounded-full bg-white/10"></div>
+      <div class="relative max-w-2xl">
+        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs">
+          <i data-lucide="map-pinned" class="w-4 h-4"></i>
+          Track Your Delivery
+        </span>
+        <h2 class="mt-4 text-2xl md:text-3xl font-bold">ตรวจสอบสถานะสินค้าของคุณ</h2>
+        <p class="mt-2 text-sm text-emerald-100 leading-6">
+          กรุณากรอกหมายเลข Invoice และ Customer Code ให้ตรงกับเอกสารจัดส่ง
+        </p>
+
+        <form id="tracking-form" class="mt-6 grid md:grid-cols-[1fr_1fr_auto] gap-3">
+          <label>
+            <span class="block mb-2 text-xs text-emerald-100">หมายเลข Invoice</span>
+            <input id="invoice-no" autocomplete="off" required
+              class="w-full h-12 px-4 rounded-xl bg-white text-slate-900 outline-none focus:ring-4 focus:ring-emerald-300/30"
+              placeholder="เช่น INV001">
+          </label>
+          <label>
+            <span class="block mb-2 text-xs text-emerald-100">Customer Code</span>
+            <input id="customer-code" autocomplete="off" required
+              class="w-full h-12 px-4 rounded-xl bg-white text-slate-900 outline-none focus:ring-4 focus:ring-emerald-300/30"
+              placeholder="เช่น C0001">
+          </label>
+          <button id="search-button" type="submit"
+            class="md:self-end h-12 px-6 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-semibold flex items-center justify-center gap-2 transition">
+            <i data-lucide="search" class="w-5 h-5"></i>
+            ตรวจสอบ
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <div id="message" class="hidden mt-5 rounded-2xl px-4 py-3 text-sm"></div>
+
+    <section id="result" class="hidden mt-5 space-y-5">
+      <div class="rounded-3xl bg-white border border-slate-200 p-5 md:p-7 soft-shadow">
+        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div>
+            <p class="text-xs text-slate-400">หมายเลข Invoice</p>
+            <h3 id="result-invoice" class="mt-1 text-xl font-bold font-mono"></h3>
+            <p id="result-customer" class="mt-2 text-sm text-slate-500"></p>
+          </div>
+          <span id="result-status" class="self-start px-3 py-1.5 rounded-full text-xs font-semibold"></span>
+        </div>
+
+        <div class="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="rounded-2xl bg-slate-50 p-4">
+            <i data-lucide="file-text" class="w-5 h-5 text-slate-400"></i>
+            <p class="mt-3 text-xs text-slate-400">เลขที่งาน</p>
+            <p id="result-doc" class="mt-1 font-semibold break-all">-</p>
+          </div>
+          <div class="rounded-2xl bg-slate-50 p-4">
+            <i data-lucide="truck" class="w-5 h-5 text-slate-400"></i>
+            <p class="mt-3 text-xs text-slate-400">ทะเบียนรถ</p>
+            <p id="result-vehicle" class="mt-1 font-semibold">-</p>
+          </div>
+          <div class="rounded-2xl bg-slate-50 p-4">
+            <i data-lucide="route" class="w-5 h-5 text-slate-400"></i>
+            <p class="mt-3 text-xs text-slate-400">ระยะทางโดยประมาณ</p>
+            <p id="result-distance" class="mt-1 font-semibold">-</p>
+          </div>
+          <div class="rounded-2xl bg-slate-50 p-4">
+            <i data-lucide="clock-3" class="w-5 h-5 text-slate-400"></i>
+            <p class="mt-3 text-xs text-slate-400">คาดว่าจะถึง</p>
+            <p id="result-eta" class="mt-1 font-semibold">-</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-3xl bg-white border border-slate-200 p-5 md:p-7 soft-shadow">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="font-bold">สถานะการจัดส่ง</h3>
+          <span id="last-refresh" class="text-[10px] text-slate-400"></span>
+        </div>
+        <div id="timeline" class="mt-6 border-l-2 border-slate-200 ml-2 pl-6 space-y-7"></div>
+        <p class="mt-6 text-xs text-slate-400 leading-5">
+          ระยะทางและเวลาเป็นค่าประมาณจากตำแหน่ง GPS ล่าสุด สภาพการจราจรจริงอาจทำให้เวลาเปลี่ยนแปลงได้
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="max-w-5xl mx-auto px-5 pb-8 text-center text-xs text-slate-400">
+    ข้อมูลการติดตามจะแสดงเฉพาะ Invoice และ Customer Code ที่ตรงกัน
+  </footer>
+
+  <script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyPb09gXXhWwbSpHZk07A53l5Dow2-M5iNcoIsN6wPK4P8hrFxpiLSWjaYYJLvdLFES/exec";
+    let refreshTimer = null;
+    let lastQuery = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+      const params = new URLSearchParams(location.search);
+      document.getElementById("invoice-no").value = params.get("invoice") || "";
+      document.getElementById("customer-code").value = params.get("customer") || "";
+      document.getElementById("tracking-form").addEventListener("submit", submitTracking);
+    });
+
+    async function submitTracking(event) {
+      event.preventDefault();
+      const invoiceNo = document.getElementById("invoice-no").value.trim();
+      const customerCode = document.getElementById("customer-code").value.trim();
+      await loadTracking(invoiceNo, customerCode, true);
+    }
+
+    async function loadTracking(invoiceNo, customerCode, showLoading) {
+      const button = document.getElementById("search-button");
+      if (showLoading) setLoading(button, true);
+      hideMessage();
+
+      try {
+        const response = await fetch(WEB_APP_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "trackInvoice", invoiceNo, customerCode })
+        });
+        const result = await response.json();
+        if (result.status !== "success") {
+          throw new Error(result.message || "ไม่สามารถตรวจสอบข้อมูลได้");
+        }
+
+        lastQuery = { invoiceNo, customerCode };
+        renderResult(result.data);
+        scheduleRefresh();
+      } catch (error) {
+        document.getElementById("result").classList.add("hidden");
+        showMessage(error.message || "เกิดข้อผิดพลาด กรุณาลองใหม่", "error");
+        stopRefresh();
+      } finally {
+        if (showLoading) setLoading(button, false);
+      }
+    }
+
+    function renderResult(data) {
+      const status = statusMeta(data.stopStatus || data.shipmentStatus);
+      setText("result-invoice", data.invoiceNo || "-");
+      setText("result-customer", (data.customerCode || "-") + " · " + (data.customerName || "-"));
+      setText("result-doc", data.docNo || "-");
+      setText("result-vehicle", data.vehiclePlate || "-");
+      setText("result-distance", data.distanceKm !== null ? data.distanceKm + " กม." : "-");
+      setText("result-eta", data.etaMinutes !== null ? data.etaMinutes + " นาที" : "-");
+      setText("last-refresh", "อัปเดตหน้าเมื่อ " + new Date().toLocaleTimeString("th-TH", {
+        hour: "2-digit", minute: "2-digit"
+      }));
+
+      const badge = document.getElementById("result-status");
+      badge.textContent = status.label;
+      badge.className = "self-start px-3 py-1.5 rounded-full text-xs font-semibold " + status.className;
+
+      document.getElementById("timeline").innerHTML = buildTimeline(data);
+      document.getElementById("result").classList.remove("hidden");
+      lucide.createIcons();
+    }
+
+    function buildTimeline(data) {
+      const shipment = String(data.shipmentStatus || "").toLowerCase();
+      const stop = String(data.stopStatus || "").toLowerCase();
+      const started = ["assigned", "in_transit", "completed"].includes(shipment);
+      const inTransit = ["in_transit", "completed"].includes(shipment);
+      const delivered = stop === "delivered" || shipment === "completed";
+
+      return [
+        timelineItem(true, "รับข้อมูลเข้าระบบแล้ว", "Invoice ได้รับการบันทึกในระบบ"),
+        timelineItem(started, "มอบหมายรถและพนักงานขับรถ", data.vehiclePlate ? "ทะเบียนรถ " + data.vehiclePlate : "กำลังรอการมอบหมายรถ"),
+        timelineItem(inTransit, "กำลังจัดส่ง", data.gpsUpdatedAt ? "GPS ล่าสุด " + data.gpsUpdatedAt : "กำลังรอข้อมูลตำแหน่งรถ"),
+        timelineItem(delivered, "จัดส่งสำเร็จ", data.deliveredAt ? "ส่งมอบเมื่อ " + data.deliveredAt : "รอการยืนยันการส่งมอบ")
+      ].join("");
+    }
+
+    function timelineItem(done, title, detail) {
+      return `
+        <div class="relative">
+          <span class="absolute -left-[31px] top-1 w-3.5 h-3.5 rounded-full ${
+            done ? "bg-emerald-500 ring-4 ring-emerald-100" : "bg-slate-300 ring-4 ring-slate-100"
+          }"></span>
+          <p class="font-semibold text-sm ${done ? "text-slate-900" : "text-slate-400"}">${escapeHtml(title)}</p>
+          <p class="mt-1 text-xs text-slate-400">${escapeHtml(detail)}</p>
+        </div>`;
+    }
+
+    function statusMeta(status) {
+      const value = String(status || "").toLowerCase();
+      const map = {
+        created: ["รับข้อมูลแล้ว", "bg-slate-100 text-slate-700"],
+        pending: ["รอดำเนินการ", "bg-amber-100 text-amber-800"],
+        assigned: ["มอบหมายรถแล้ว", "bg-blue-100 text-blue-800"],
+        in_transit: ["กำลังจัดส่ง", "bg-cyan-100 text-cyan-800"],
+        arrived: ["ถึงจุดส่งแล้ว", "bg-violet-100 text-violet-800"],
+        delivered: ["จัดส่งสำเร็จ", "bg-emerald-100 text-emerald-800"],
+        completed: ["จัดส่งสำเร็จ", "bg-emerald-100 text-emerald-800"],
+        failed: ["จัดส่งไม่สำเร็จ", "bg-red-100 text-red-800"]
+      };
+      const item = map[value] || ["กำลังดำเนินการ", "bg-slate-100 text-slate-700"];
+      return { label: item[0], className: item[1] };
+    }
+
+    function scheduleRefresh() {
+      stopRefresh();
+      refreshTimer = setInterval(() => {
+        if (lastQuery && document.visibilityState === "visible") {
+          loadTracking(lastQuery.invoiceNo, lastQuery.customerCode, false);
+        }
+      }, 60000);
+    }
+
+    function stopRefresh() {
+      if (refreshTimer) clearInterval(refreshTimer);
+      refreshTimer = null;
+    }
+
+    function setLoading(button, loading) {
+      button.disabled = loading;
+      button.innerHTML = loading
+        ? '<i data-lucide="loader-circle" class="w-5 h-5 spin"></i> กำลังค้นหา'
+        : '<i data-lucide="search" class="w-5 h-5"></i> ตรวจสอบ';
+      lucide.createIcons();
+    }
+
+    function showMessage(text, type) {
+      const element = document.getElementById("message");
+      element.textContent = text;
+      element.className = "mt-5 rounded-2xl px-4 py-3 text-sm " +
+        (type === "error"
+          ? "bg-red-50 border border-red-200 text-red-700"
+          : "bg-blue-50 border border-blue-200 text-blue-700");
+    }
+
+    function hideMessage() {
+      document.getElementById("message").classList.add("hidden");
+    }
+
+    function setText(id, value) {
+      document.getElementById(id).textContent = value;
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
