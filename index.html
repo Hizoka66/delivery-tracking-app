@@ -409,6 +409,7 @@
       token: localStorage.getItem(STORAGE.TOKEN) || "",
       user: readJsonStorage(STORAGE.USER),
       deviceId: getOrCreateDeviceId(),
+      deviceType: getDeviceType(),
       selectedVehicleId: localStorage.getItem(STORAGE.VEHICLE_ID) || "",
       vehicles: [],
       driverState: null,
@@ -446,6 +447,18 @@
         localStorage.setItem(STORAGE.DEVICE_ID, id);
       }
       return id;
+    }
+
+    function getDeviceType() {
+      if (
+        navigator.userAgentData &&
+        typeof navigator.userAgentData.mobile === "boolean"
+      ) {
+        return navigator.userAgentData.mobile ? "mobile" : "dashboard";
+      }
+      return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+        ? "mobile"
+        : "dashboard";
     }
 
     async function api(action, payload = {}, authenticated = true) {
@@ -529,7 +542,9 @@
           data: {
             phone: document.getElementById("login-phone").value,
             pin: document.getElementById("login-pin").value,
-            deviceId: state.deviceId
+            deviceId: state.deviceId,
+            deviceType: state.deviceType,
+            requestedRole: state.loginRole
           }
         }, false);
 
