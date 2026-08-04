@@ -4,7 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Delivery Tracking">
   <title>Delivery Tracking V2</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" href="./logo.png">
+  <link rel="apple-touch-icon" href="./logo.png">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
@@ -53,6 +60,7 @@
         <div class="absolute -top-24 -right-20 w-72 h-72 rounded-full bg-blue-600/25 blur-3xl"></div>
         <div class="absolute -bottom-24 -left-16 w-72 h-72 rounded-full bg-cyan-400/10 blur-3xl"></div>
         <div class="relative max-w-6xl mx-auto px-5 py-14 md:py-20">
+          <img src="./logo.png" alt="NPT Delivery Tracking" class="w-20 h-20 md:w-24 md:h-24 rounded-2xl object-cover border border-white/20 shadow-xl">
           <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/10 text-xs text-blue-100">
             <i data-lucide="radio-tower" class="w-4 h-4"></i>
             Delivery Tracking V2
@@ -61,7 +69,7 @@
             ติดตามการจัดส่ง<br class="md:hidden">แบบ Real-time
           </h1>
           <p class="mt-4 max-w-2xl text-slate-300 text-sm md:text-base leading-7">
-            สแกนงานด้วย QR Code ติดตามรถด้วย GPS และตรวจสอบสถานะจากหมายเลข Invoice
+            ระบบปฏิบัติงานสำหรับพนักงานขับรถและ Dashboard ติดตาม Fleet แบบ Real-time
           </p>
           <div class="mt-7 flex flex-wrap gap-3 text-xs text-slate-300">
             <span class="px-3 py-2 rounded-lg bg-white/5 border border-white/10">Device Binding</span>
@@ -72,18 +80,7 @@
       </div>
 
       <div class="max-w-6xl w-full mx-auto px-5 py-8 md:py-12 -mt-4 md:-mt-7 relative z-10">
-        <div class="grid md:grid-cols-3 gap-4">
-          <a href="./tracking.html" class="group text-left p-6 rounded-2xl bg-white border border-slate-200 soft-shadow hover:-translate-y-1 transition">
-            <span class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 grid place-items-center">
-              <i data-lucide="package-search" class="w-6 h-6"></i>
-            </span>
-            <h2 class="mt-5 font-bold text-lg">ลูกค้า</h2>
-            <p class="mt-2 text-sm text-slate-500 leading-6">ติดตามสินค้าด้วยหมายเลข Invoice</p>
-            <span class="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">
-              ตรวจสอบสถานะ <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition"></i>
-            </span>
-          </a>
-
+        <div class="grid md:grid-cols-2 gap-4 max-w-3xl mx-auto">
           <button onclick="openLogin('driver')" class="group text-left p-6 rounded-2xl bg-white border border-slate-200 soft-shadow hover:-translate-y-1 transition">
             <span class="w-12 h-12 rounded-xl bg-blue-100 text-blue-700 grid place-items-center">
               <i data-lucide="truck" class="w-6 h-6"></i>
@@ -420,6 +417,19 @@
   <!-- Toast -->
   <div id="toast" class="fixed z-[1200] top-4 left-1/2 -translate-x-1/2 hidden max-w-[92vw] px-4 py-3 rounded-xl text-sm text-white shadow-xl"></div>
 
+  <!-- Mobile PWA install banner -->
+  <div id="pwa-install-banner" class="hidden fixed z-[1250] bottom-4 left-4 right-4 max-w-md mx-auto rounded-2xl bg-slate-950 text-white p-4 shadow-2xl border border-white/10">
+    <div class="flex items-center gap-3">
+      <span class="w-11 h-11 rounded-xl bg-blue-600 grid place-items-center shrink-0"><i data-lucide="download" class="w-5 h-5"></i></span>
+      <div class="min-w-0 flex-1">
+        <p class="font-semibold text-sm">ติดตั้ง Delivery Tracking</p>
+        <p class="mt-1 text-[10px] text-slate-400">เปิดใช้งานแบบแอปบนหน้าจอมือถือ</p>
+      </div>
+      <button onclick="installPwa()" class="px-3 py-2 rounded-lg bg-blue-600 text-xs font-semibold">ติดตั้ง</button>
+      <button onclick="dismissPwaBanner()" class="w-8 h-8 rounded-lg bg-white/10 grid place-items-center"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+  </div>
+
   <script>
     // Replace this URL only if you create a completely new Apps Script deployment.
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyPb09gXXhWwbSpHZk07A53l5Dow2-M5iNcoIsN6wPK4P8hrFxpiLSWjaYYJLvdLFES/exec";
@@ -451,6 +461,19 @@
       fleetData: [],
       adminData: null
     };
+    let deferredInstallPrompt = null;
+
+    window.addEventListener("beforeinstallprompt", event => {
+      event.preventDefault();
+      deferredInstallPrompt = event;
+      showPwaBanner();
+    });
+
+    window.addEventListener("appinstalled", () => {
+      deferredInstallPrompt = null;
+      document.getElementById("pwa-install-banner").classList.add("hidden");
+      showToast("ติดตั้งแอปเรียบร้อยแล้ว", "success");
+    });
 
     document.addEventListener("DOMContentLoaded", async () => {
       lucide.createIcons();
@@ -458,6 +481,7 @@
       window.addEventListener("online", updateConnectionUi);
       window.addEventListener("offline", updateConnectionUi);
       document.addEventListener("visibilitychange", rescheduleGps);
+      setupPwa();
       await initBattery();
       restoreSession();
     });
@@ -475,6 +499,44 @@
         localStorage.setItem(STORAGE.DEVICE_ID, id);
       }
       return id;
+    }
+
+    function setupPwa() {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+      }
+      const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+      if (standalone || state.deviceType !== "mobile") return;
+      const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isIos && !sessionStorage.getItem("dt2_install_dismissed")) showPwaBanner();
+    }
+
+    function showPwaBanner() {
+      if (state.deviceType !== "mobile" || sessionStorage.getItem("dt2_install_dismissed")) return;
+      document.getElementById("pwa-install-banner").classList.remove("hidden");
+      lucide.createIcons();
+    }
+
+    async function installPwa() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+        document.getElementById("pwa-install-banner").classList.add("hidden");
+        return;
+      }
+      showModal("ติดตั้งบน iPhone/iPad", "เพิ่มระบบไว้บนหน้าจอโฮม", `
+        <div class="space-y-4 text-sm text-slate-600">
+          <p>1. เปิดหน้านี้ด้วย Safari</p>
+          <p>2. กดปุ่ม Share <span class="font-semibold text-blue-700">สี่เหลี่ยมมีลูกศรชี้ขึ้น</span></p>
+          <p>3. เลือก <span class="font-semibold text-slate-900">Add to Home Screen / เพิ่มไปยังหน้าจอโฮม</span></p>
+          <p>4. กด Add แล้วเปิดระบบจากไอคอน Delivery Tracking</p>
+        </div>`);
+    }
+
+    function dismissPwaBanner() {
+      sessionStorage.setItem("dt2_install_dismissed", "1");
+      document.getElementById("pwa-install-banner").classList.add("hidden");
     }
 
     function getDeviceType() {

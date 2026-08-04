@@ -1,0 +1,21 @@
+{
+  "name": "Delivery Tracking",
+  "short_name": "Delivery",
+  "description": "ระบบปฏิบัติงานพนักงานขับรถและติดตาม Fleet",
+  "id": "./",
+  "start_url": "./?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "any",
+  "lang": "th",
+  "icons": [
+    {
+      "src": "./logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
