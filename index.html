@@ -225,16 +225,25 @@
               </div>
               <div>
                 <h2 class="font-bold text-lg">พร้อมรับงานใหม่</h2>
-                <p class="mt-1 text-sm text-slate-500">เลือกรถที่ใช้งาน แล้วสแกน QR Code ใบนำส่ง</p>
+                <p class="mt-1 text-sm text-slate-500">รถประจำบัญชีจะถูกเลือกให้อัตโนมัติ</p>
               </div>
             </div>
 
-            <label class="block mt-6">
+            <div id="vehicle-binding-setup" class="mt-6">
+            <label class="block">
               <span class="text-sm font-medium text-slate-700">รถที่ใช้งาน</span>
-              <select id="driver-vehicle" onchange="saveSelectedVehicle()" class="mt-2 w-full px-4 py-3 rounded-xl border border-slate-300 bg-white">
+              <select id="driver-vehicle" class="mt-2 w-full px-4 py-3 rounded-xl border border-slate-300 bg-white">
                 <option value="">-- เลือกรถ --</option>
               </select>
             </label>
+            <button onclick="bindSelectedVehicle()" class="mt-3 w-full py-3 rounded-xl bg-indigo-600 text-white font-semibold">ยืนยันผูกรถคันนี้</button>
+            <p class="mt-2 text-[10px] text-amber-700">เลือกได้ครั้งแรกเพียงครั้งเดียว หากต้องการเปลี่ยนรถให้ติดต่อ Admin</p>
+            </div>
+            <div id="vehicle-bound-card" class="hidden mt-6 rounded-2xl bg-blue-50 border border-blue-200 p-4">
+              <p class="text-xs text-blue-600">รถประจำบัญชี</p>
+              <p id="bound-vehicle-plate" class="mt-1 font-bold text-blue-950"></p>
+              <p id="bound-vehicle-type" class="mt-1 text-xs text-blue-700"></p>
+            </div>
 
             <div class="grid sm:grid-cols-2 gap-3 mt-5">
               <button onclick="openScanner()" class="py-4 rounded-xl bg-blue-600 text-white font-semibold flex items-center justify-center gap-2">
@@ -352,6 +361,24 @@
               <p class="text-xs text-slate-500">ตำแหน่งล่าสุดของรถ</p>
               <span id="fleet-updated" class="text-[10px] text-slate-400"></span>
             </div>
+            <div class="mt-3 grid grid-cols-2 gap-2">
+              <input id="fleet-search" oninput="applyFleetFilters()" placeholder="ค้นหาทะเบียน/คนขับ" class="col-span-2 px-3 py-2 rounded-lg border border-slate-200 text-xs">
+              <select id="fleet-type-filter" onchange="applyFleetFilters()" class="px-2 py-2 rounded-lg border border-slate-200 text-xs">
+                <option value="">ประเภทรถทั้งหมด</option>
+                <option value="4w_ac">4 ล้อ แอร์</option><option value="4w_normal">4 ล้อ ธรรมดา</option>
+                <option value="6w_ac">6 ล้อ แอร์</option><option value="6w_normal">6 ล้อ ธรรมดา</option>
+              </select>
+              <select id="fleet-connection-filter" onchange="applyFleetFilters()" class="px-2 py-2 rounded-lg border border-slate-200 text-xs">
+                <option value="">สัญญาณทั้งหมด</option><option value="online">Online</option>
+                <option value="stale">สัญญาณช้า</option><option value="offline">Offline</option>
+              </select>
+              <select id="fleet-work-filter" onchange="applyFleetFilters()" class="col-span-2 px-2 py-2 rounded-lg border border-slate-200 text-xs">
+                <option value="">สถานะงานทั้งหมด</option><option value="available">พร้อมรับงาน</option>
+                <option value="assigned">มอบหมายแล้ว</option><option value="delivering">กำลังจัดส่ง</option>
+                <option value="returning">กำลังกลับ</option><option value="off_duty">เลิกงาน</option>
+                <option value="maintenance">ซ่อมบำรุง</option>
+              </select>
+            </div>
           </div>
           <div id="fleet-list" class="flex-1 min-h-0 overflow-y-auto thin-scrollbar p-3 space-y-2"></div>
         </aside>
@@ -421,6 +448,7 @@
       map: null,
       markers: {},
       fleetTimer: null,
+      fleetData: [],
       adminData: null
     };
 
@@ -659,7 +687,9 @@
       setView("view-driver");
       document.getElementById("driver-name").textContent = state.user.name;
       updateConnectionUi();
-      await Promise.all([loadVehicles(), loadDriverState()]);
+      await loadDriverState();
+      await loadVehicles();
+      renderVehicleBinding();
       startGps();
     }
 
@@ -671,7 +701,7 @@
         state.vehicles.forEach(vehicle => {
           const option = document.createElement("option");
           option.value = vehicle.vehicleId;
-          option.textContent = `${vehicle.plate}${vehicle.vehicleName ? " · " + vehicle.vehicleName : ""}`;
+          option.textContent = `${vehicle.plate} · ${vehicleTypeLabel(vehicle.vehicleType)}${vehicle.vehicleName ? " · " + vehicle.vehicleName : ""}`;
           select.appendChild(option);
         });
         if (state.selectedVehicleId) select.value = state.selectedVehicleId;
@@ -687,6 +717,13 @@
 
       try {
         state.driverState = await api("getMyState");
+        if (state.driverState.assignedVehicle) {
+          state.selectedVehicleId = state.driverState.assignedVehicle.vehicleId;
+          localStorage.setItem(STORAGE.VEHICLE_ID, state.selectedVehicleId);
+        } else {
+          state.selectedVehicleId = "";
+          localStorage.removeItem(STORAGE.VEHICLE_ID);
+        }
         if (state.driverState.location && state.driverState.location.vehicleId) {
           state.selectedVehicleId = state.driverState.location.vehicleId;
           localStorage.setItem(STORAGE.VEHICLE_ID, state.selectedVehicleId);
@@ -789,13 +826,30 @@
     }
 
     function saveSelectedVehicle() {
-      state.selectedVehicleId = document.getElementById("driver-vehicle").value;
-      if (state.selectedVehicleId) {
-        localStorage.setItem(STORAGE.VEHICLE_ID, state.selectedVehicleId);
-        startGps();
-      } else {
-        localStorage.removeItem(STORAGE.VEHICLE_ID);
+      return document.getElementById("driver-vehicle").value;
+    }
+
+    function renderVehicleBinding() {
+      const vehicle = state.driverState && state.driverState.assignedVehicle;
+      document.getElementById("vehicle-binding-setup").classList.toggle("hidden", !!vehicle);
+      document.getElementById("vehicle-bound-card").classList.toggle("hidden", !vehicle);
+      if (vehicle) {
+        document.getElementById("bound-vehicle-plate").textContent = vehicle.plate;
+        document.getElementById("bound-vehicle-type").textContent = vehicleTypeLabel(vehicle.vehicleType);
       }
+    }
+
+    async function bindSelectedVehicle() {
+      const vehicleId = saveSelectedVehicle();
+      if (!vehicleId) return showToast("กรุณาเลือกรถ", "error");
+      if (!confirm("ยืนยันผูกบัญชีกับรถคันนี้? หลังจากยืนยันต้องให้ Admin เป็นผู้เปลี่ยนรถ")) return;
+      try {
+        await api("bindDriverVehicle", { vehicleId });
+        showToast("ผูกรถกับบัญชีเรียบร้อยแล้ว", "success");
+        await loadDriverState();
+        renderVehicleBinding();
+        startGps();
+      } catch (error) { showToast(error.message, "error"); }
     }
 
     async function startCurrentShipment() {
@@ -1157,10 +1211,26 @@
     async function refreshFleet() {
       try {
         const fleet = await api("getFleet");
-        renderFleet(fleet);
+        state.fleetData = fleet;
+        applyFleetFilters();
       } catch (error) {
         showToast(error.message, "error");
       }
+    }
+
+    function applyFleetFilters() {
+      const search = (valueOf("fleet-search") || "").toLowerCase();
+      const type = valueOf("fleet-type-filter");
+      const connection = valueOf("fleet-connection-filter");
+      const work = valueOf("fleet-work-filter");
+      const filtered = (state.fleetData || []).filter(item => {
+        const text = `${item.plate || ""} ${item.driverName || ""} ${item.vehicleName || ""}`.toLowerCase();
+        return (!search || text.includes(search)) &&
+          (!type || item.vehicleType === type) &&
+          (!connection || item.connectionStatus === connection) &&
+          (!work || item.workStatus === work);
+      });
+      renderFleet(filtered);
     }
 
     function renderFleet(fleet) {
@@ -1195,6 +1265,7 @@
             <div class="min-w-0">
               <h3 class="font-bold text-sm truncate">${escapeHtml(item.plate || item.vehicleId)}</h3>
               <p class="mt-1 text-xs text-slate-500 truncate">${escapeHtml(item.driverName || "ไม่ระบุคนขับ")}</p>
+              <p class="mt-1 text-[9px] font-semibold" style="color:${vehicleTypeColor(item.vehicleType)}">${vehicleTypeLabel(item.vehicleType)}</p>
             </div>
             <span class="px-2 py-1 rounded-full text-[9px] font-semibold ${connection.className}">${connection.label}</span>
           </div>
@@ -1213,16 +1284,11 @@
             <small>${escapeHtml(work.label)} · ${escapeHtml(item.docNo || "ไม่มีงาน")}</small>
           </div>`;
 
+        const markerIcon = makeVehicleMarkerIcon(item.vehicleType);
         if (state.markers[item.vehicleId]) {
-          state.markers[item.vehicleId].setLatLng([lat, lng]).setPopupContent(popup);
+          state.markers[item.vehicleId].setLatLng([lat, lng]).setPopupContent(popup).setIcon(markerIcon);
         } else {
-          const icon = L.divIcon({
-            className: "",
-            html: `<div class="truck-marker pulse-ring relative"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.3a4 4 0 0 0-1.2-2.9L19 9h-5"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>`,
-            iconSize: [42, 42],
-            iconAnchor: [21, 21]
-          });
-          state.markers[item.vehicleId] = L.marker([lat, lng], { icon })
+          state.markers[item.vehicleId] = L.marker([lat, lng], { icon: markerIcon })
             .addTo(state.map)
             .bindPopup(popup);
         }
@@ -1248,6 +1314,29 @@
       lucide.createIcons();
     }
 
+    function vehicleTypeLabel(type) {
+      return ({
+        "4w_ac": "4 ล้อ แอร์", "4w_normal": "4 ล้อ ธรรมดา",
+        "6w_ac": "6 ล้อ แอร์", "6w_normal": "6 ล้อ ธรรมดา"
+      })[type] || "4 ล้อ ธรรมดา";
+    }
+
+    function vehicleTypeColor(type) {
+      return ({
+        "4w_ac": "#2563eb", "4w_normal": "#16a34a",
+        "6w_ac": "#7c3aed", "6w_normal": "#ea580c"
+      })[type] || "#16a34a";
+    }
+
+    function makeVehicleMarkerIcon(type) {
+      const color = vehicleTypeColor(type);
+      return L.divIcon({
+        className: "",
+        html: `<div class="truck-marker pulse-ring relative" style="background:${color}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.3a4 4 0 0 0-1.2-2.9L19 9h-5"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>`,
+        iconSize: [42, 42], iconAnchor: [21, 21]
+      });
+    }
+
     async function openAdminPanel() {
       showModal("จัดการข้อมูลระบบ", "เพิ่มผู้ใช้ รถ ลูกค้า และปลดล็อกอุปกรณ์", `
         <div id="admin-panel-loading" class="py-10 text-center text-slate-400">
@@ -1260,6 +1349,10 @@
         state.adminData = await api("getAdminData");
         renderAdminPanel();
       } catch (error) {
+        document.getElementById("admin-panel-loading").classList.add("hidden");
+        const content = document.getElementById("admin-panel-content");
+        content.classList.remove("hidden");
+        content.innerHTML = `<div class="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">${escapeHtml(error.message)}<button onclick="openAdminPanel()" class="block mt-3 px-3 py-2 rounded-lg bg-red-600 text-white text-xs">ลองใหม่</button></div>`;
         showToast(error.message, "error");
       }
     }
@@ -1286,6 +1379,7 @@
                   <p class="text-[10px] mt-1 ${user.device ? "text-emerald-600" : "text-slate-400"}">
                     ${user.device ? "ผูกอุปกรณ์แล้ว" : "ยังไม่ผูกอุปกรณ์"}
                   </p>
+                  ${user.vehicle ? `<p class="text-[10px] mt-1 text-blue-700">รถ: ${escapeHtml(user.vehicle.plate)} · ${vehicleTypeLabel(user.vehicle.vehicleType)}</p>` : ""}
                 </div>
                 <span class="px-2 py-1 rounded-full text-[9px] font-semibold ${user.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}">
                   ${user.status === "active" ? "ใช้งาน" : "ระงับ"}
@@ -1296,9 +1390,23 @@
                   <button onclick="showResetPinForm('${jsString(user.userId)}')" class="px-2.5 py-1.5 rounded-lg bg-violet-50 text-violet-700 text-[10px] font-semibold">ตั้ง PIN</button>
                   <button onclick="toggleUserStatus('${jsString(user.userId)}','${user.status === "active" ? "inactive" : "active"}')" class="px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-[10px] font-semibold">${user.status === "active" ? "ระงับ" : "เปิดใช้"}</button>
                   ${user.device ? `<button onclick="resetUserDevice('${jsString(user.userId)}')" class="px-2.5 py-1.5 rounded-lg bg-orange-50 text-orange-700 text-[10px] font-semibold">ปลดล็อก</button>` : ""}
+                  ${user.role === "driver" && user.vehicle ? `<button onclick="unbindUserVehicle('${jsString(user.userId)}')" class="px-2.5 py-1.5 rounded-lg bg-cyan-50 text-cyan-700 text-[10px] font-semibold">เปลี่ยนรถ</button>` : ""}
                   <button onclick="deleteUserAccount('${jsString(user.userId)}')" class="px-2.5 py-1.5 rounded-lg bg-red-50 text-red-700 text-[10px] font-semibold">ลบ</button>
                 </div>
               </div>`).join("") || `<p class="text-sm text-slate-400">ยังไม่มีผู้ใช้</p>`}
+          </div>
+        </div>
+        <div class="mt-6">
+          <h4 class="font-semibold text-sm">รถและประเภท</h4>
+          <div class="mt-3 space-y-2 max-h-52 overflow-y-auto thin-scrollbar">
+            ${state.adminData.vehicles.map(vehicle => `
+              <div class="rounded-xl border border-slate-200 p-3 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="font-semibold text-sm">${escapeHtml(vehicle.plate)}</p>
+                  <p class="text-[10px] mt-1" style="color:${vehicleTypeColor(vehicle.vehicleType)}">${vehicleTypeLabel(vehicle.vehicleType)} · ${escapeHtml(vehicle.vehicleName || "-")}</p>
+                </div>
+                <button onclick="showEditVehicleForm('${jsString(vehicle.vehicleId)}')" class="px-3 py-2 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-semibold">แก้ไข</button>
+              </div>`).join("") || `<p class="text-sm text-slate-400">ยังไม่มีรถ</p>`}
           </div>
         </div>
         <div class="mt-6 rounded-xl bg-blue-50 p-3 text-xs text-blue-800">
@@ -1418,6 +1526,12 @@
         <form onsubmit="addVehicle(event)" class="space-y-3">
           ${inputField("vehicle-plate", "ทะเบียนรถ", "text")}
           ${inputField("vehicle-name", "ชื่อรถ เช่น Truck 01", "text", false)}
+          <label class="block"><span class="text-sm font-medium">ประเภทรถ</span>
+            <select id="vehicle-type" class="mt-2 w-full px-4 py-3 rounded-xl border border-slate-300">
+              <option value="4w_ac">4 ล้อ แอร์</option><option value="4w_normal">4 ล้อ ธรรมดา</option>
+              <option value="6w_ac">6 ล้อ แอร์</option><option value="6w_normal">6 ล้อ ธรรมดา</option>
+            </select>
+          </label>
           <button class="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold">บันทึกรถ</button>
         </form>`);
     }
@@ -1426,10 +1540,52 @@
       event.preventDefault();
       try {
         await api("upsertVehicle", { data: {
-          plate: valueOf("vehicle-plate"), vehicleName: valueOf("vehicle-name"), status: "active"
+          plate: valueOf("vehicle-plate"), vehicleName: valueOf("vehicle-name"),
+          vehicleType: valueOf("vehicle-type"), status: "active"
         }});
         closeModal();
         showToast("เพิ่มรถสำเร็จ", "success");
+      } catch (error) { showToast(error.message, "error"); }
+    }
+
+    function showEditVehicleForm(vehicleId) {
+      const vehicle = state.adminData.vehicles.find(item => String(item.vehicleId) === String(vehicleId));
+      if (!vehicle) return showToast("ไม่พบข้อมูลรถ", "error");
+      showModal("แก้ไขข้อมูลรถ", vehicle.plate, `
+        <form onsubmit="saveVehicleEdit(event, '${jsString(vehicleId)}')" class="space-y-3">
+          ${inputField("edit-vehicle-plate", "ทะเบียนรถ", "text")}
+          ${inputField("edit-vehicle-name", "ชื่อรถ", "text", false)}
+          <label class="block"><span class="text-sm font-medium">ประเภทรถ</span>
+            <select id="edit-vehicle-type" class="mt-2 w-full px-4 py-3 rounded-xl border border-slate-300">
+              <option value="4w_ac">4 ล้อ แอร์</option><option value="4w_normal">4 ล้อ ธรรมดา</option>
+              <option value="6w_ac">6 ล้อ แอร์</option><option value="6w_normal">6 ล้อ ธรรมดา</option>
+            </select>
+          </label>
+          <label class="block"><span class="text-sm font-medium">สถานะรถ</span>
+            <select id="edit-vehicle-status" class="mt-2 w-full px-4 py-3 rounded-xl border border-slate-300">
+              <option value="active">ใช้งาน</option><option value="maintenance">ซ่อมบำรุง</option><option value="inactive">ยกเลิกใช้งาน</option>
+            </select>
+          </label>
+          <button class="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold">บันทึกข้อมูลรถ</button>
+        </form>`);
+      document.getElementById("edit-vehicle-plate").value = vehicle.plate || "";
+      document.getElementById("edit-vehicle-name").value = vehicle.vehicleName || "";
+      document.getElementById("edit-vehicle-type").value = vehicle.vehicleType || "4w_normal";
+      document.getElementById("edit-vehicle-status").value = vehicle.status || "active";
+    }
+
+    async function saveVehicleEdit(event, vehicleId) {
+      event.preventDefault();
+      try {
+        await api("upsertVehicle", { data: {
+          vehicleId, plate: valueOf("edit-vehicle-plate"),
+          vehicleName: valueOf("edit-vehicle-name"), vehicleType: valueOf("edit-vehicle-type"),
+          status: valueOf("edit-vehicle-status")
+        }});
+        closeModal();
+        showToast("แก้ไขข้อมูลรถสำเร็จ", "success");
+        openAdminPanel();
+        refreshFleet();
       } catch (error) { showToast(error.message, "error"); }
     }
 
@@ -1470,6 +1626,15 @@
       try {
         await api("revokeDevice", { userId });
         showToast("ปลดล็อกอุปกรณ์แล้ว", "success");
+        openAdminPanel();
+      } catch (error) { showToast(error.message, "error"); }
+    }
+
+    async function unbindUserVehicle(userId) {
+      if (!confirm("ยืนยันยกเลิกการผูกรถ? Driver จะต้องเลือกรถใหม่เมื่อเข้าสู่ระบบ")) return;
+      try {
+        await api("unbindDriverVehicle", { userId });
+        showToast("ยกเลิกการผูกรถแล้ว", "success");
         openAdminPanel();
       } catch (error) { showToast(error.message, "error"); }
     }
