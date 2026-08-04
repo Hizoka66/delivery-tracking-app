@@ -1,4 +1,4 @@
-const CACHE_NAME = "delivery-tracking-v2.6.0-logo-v2";
+const CACHE_NAME = "delivery-tracking-v2.6.0-driver-scan-v3";
 const APP_SHELL = ["./", "./index.html", "./manifest.json", "./logo.png"];
 
 self.addEventListener("install", event => {

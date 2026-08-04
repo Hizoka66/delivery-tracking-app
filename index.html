@@ -48,6 +48,16 @@
       border-radius: 9999px; animation: ping 1.8s cubic-bezier(0,0,.2,1) infinite;
     }
     @keyframes ping { 75%,100% { transform: scale(1.35); opacity: 0; } }
+    #qr-reader {
+      position: relative; width: 100%; height: 100%; overflow: hidden;
+      border: 0 !important; background: #020617 !important;
+    }
+    #qr-reader > div, #qr-reader__scan_region { height: 100% !important; }
+    #qr-reader video {
+      width: 100% !important; height: 100% !important;
+      object-fit: cover !important; border-radius: 0 !important;
+    }
+    #qr-reader__dashboard { display: none !important; }
   </style>
 </head>
 
@@ -242,12 +252,9 @@
               <p id="bound-vehicle-type" class="mt-1 text-xs text-blue-700"></p>
             </div>
 
-            <div class="grid sm:grid-cols-2 gap-3 mt-5">
-              <button onclick="openScanner()" class="py-4 rounded-xl bg-blue-600 text-white font-semibold flex items-center justify-center gap-2">
+            <div id="driver-scan-actions" class="hidden mt-5">
+              <button onclick="openScanner()" class="w-full py-4 rounded-xl bg-blue-600 text-white font-semibold flex items-center justify-center gap-2">
                 <i data-lucide="scan-line" class="w-5 h-5"></i> สแกน QR Code
-              </button>
-              <button onclick="openManualQr()" class="py-4 rounded-xl bg-slate-100 text-slate-700 font-semibold flex items-center justify-center gap-2">
-                <i data-lucide="keyboard" class="w-5 h-5"></i> วางข้อมูล QR
               </button>
             </div>
           </div>
@@ -895,6 +902,7 @@
       const vehicle = state.driverState && state.driverState.assignedVehicle;
       document.getElementById("vehicle-binding-setup").classList.toggle("hidden", !!vehicle);
       document.getElementById("vehicle-bound-card").classList.toggle("hidden", !vehicle);
+      document.getElementById("driver-scan-actions").classList.toggle("hidden", !vehicle);
       if (vehicle) {
         document.getElementById("bound-vehicle-plate").textContent = vehicle.plate;
         document.getElementById("bound-vehicle-type").textContent = vehicleTypeLabel(vehicle.vehicleType);
@@ -998,7 +1006,13 @@
         state.qrScanner = state.qrScanner || new Html5Qrcode("qr-reader");
         await state.qrScanner.start(
           { facingMode: "environment" },
-          { fps: 8, qrbox: { width: 250, height: 250 }, aspectRatio: 1 },
+          {
+            fps: 10,
+            qrbox: (viewfinderWidth, viewfinderHeight) => {
+              const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.68);
+              return { width: size, height: size };
+            }
+          },
           async decodedText => {
             await closeScanner();
             await processQrPayload(decodedText);
@@ -1018,21 +1032,6 @@
       const modal = document.getElementById("scanner-modal");
       modal.classList.add("hidden");
       modal.classList.remove("flex");
-    }
-
-    function openManualQr() {
-      if (!ensureVehicleSelected()) return;
-      showModal("วางข้อมูล QR", "รองรับรูปแบบ JSON ของ Delivery Tracking V2", `
-        <form onsubmit="submitManualQr(event)" class="space-y-4">
-          <textarea id="manual-qr-data" rows="9" class="w-full px-4 py-3 rounded-xl border border-slate-300 font-mono text-xs"
-            placeholder='{"docNo":"DN001","originCode":"NPT","routeCode":"R01","stops":[{"customerCode":"C0001","invoices":["INV001"]}]}' required></textarea>
-          <button class="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold">สร้างงานจัดส่ง</button>
-        </form>`);
-    }
-
-    async function submitManualQr(event) {
-      event.preventDefault();
-      await processQrPayload(document.getElementById("manual-qr-data").value);
     }
 
     async function processQrPayload(rawText) {
