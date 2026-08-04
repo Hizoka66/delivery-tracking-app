@@ -73,7 +73,7 @@
 
       <div class="max-w-6xl w-full mx-auto px-5 py-8 md:py-12 -mt-4 md:-mt-7 relative z-10">
         <div class="grid md:grid-cols-3 gap-4">
-          <button onclick="openCustomer()" class="group text-left p-6 rounded-2xl bg-white border border-slate-200 soft-shadow hover:-translate-y-1 transition">
+          <a href="./tracking.html" class="group text-left p-6 rounded-2xl bg-white border border-slate-200 soft-shadow hover:-translate-y-1 transition">
             <span class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 grid place-items-center">
               <i data-lucide="package-search" class="w-6 h-6"></i>
             </span>
@@ -82,7 +82,7 @@
             <span class="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">
               ตรวจสอบสถานะ <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition"></i>
             </span>
-          </button>
+          </a>
 
           <button onclick="openLogin('driver')" class="group text-left p-6 rounded-2xl bg-white border border-slate-200 soft-shadow hover:-translate-y-1 transition">
             <span class="w-12 h-12 rounded-xl bg-blue-100 text-blue-700 grid place-items-center">
@@ -1278,7 +1278,8 @@
           <h4 class="font-semibold text-sm">ผู้ใช้งานและอุปกรณ์</h4>
           <div class="mt-3 space-y-2 max-h-72 overflow-y-auto thin-scrollbar">
             ${state.adminData.users.map(user => `
-              <div class="rounded-xl border border-slate-200 p-3 flex items-center justify-between gap-3">
+              <div class="rounded-xl border border-slate-200 p-3">
+                <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
                   <p class="font-semibold text-sm truncate">${escapeHtml(user.name)}</p>
                   <p class="text-[10px] text-slate-400">${escapeHtml(user.phone)} · ${escapeHtml(user.role)}</p>
@@ -1286,7 +1287,17 @@
                     ${user.device ? "ผูกอุปกรณ์แล้ว" : "ยังไม่ผูกอุปกรณ์"}
                   </p>
                 </div>
-                ${user.device ? `<button onclick="resetUserDevice('${jsString(user.userId)}')" class="px-3 py-2 rounded-lg bg-red-50 text-red-700 text-[10px] font-semibold">ปลดล็อก</button>` : ""}
+                <span class="px-2 py-1 rounded-full text-[9px] font-semibold ${user.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}">
+                  ${user.status === "active" ? "ใช้งาน" : "ระงับ"}
+                </span>
+                </div>
+                <div class="mt-3 flex flex-wrap gap-1.5">
+                  <button onclick="showEditUserForm('${jsString(user.userId)}')" class="px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-semibold">แก้ไข</button>
+                  <button onclick="showResetPinForm('${jsString(user.userId)}')" class="px-2.5 py-1.5 rounded-lg bg-violet-50 text-violet-700 text-[10px] font-semibold">ตั้ง PIN</button>
+                  <button onclick="toggleUserStatus('${jsString(user.userId)}','${user.status === "active" ? "inactive" : "active"}')" class="px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-[10px] font-semibold">${user.status === "active" ? "ระงับ" : "เปิดใช้"}</button>
+                  ${user.device ? `<button onclick="resetUserDevice('${jsString(user.userId)}')" class="px-2.5 py-1.5 rounded-lg bg-orange-50 text-orange-700 text-[10px] font-semibold">ปลดล็อก</button>` : ""}
+                  <button onclick="deleteUserAccount('${jsString(user.userId)}')" class="px-2.5 py-1.5 rounded-lg bg-red-50 text-red-700 text-[10px] font-semibold">ลบ</button>
+                </div>
               </div>`).join("") || `<p class="text-sm text-slate-400">ยังไม่มีผู้ใช้</p>`}
           </div>
         </div>
@@ -1320,6 +1331,85 @@
         }});
         closeModal();
         showToast("เพิ่มผู้ใช้สำเร็จ", "success");
+      } catch (error) { showToast(error.message, "error"); }
+    }
+
+    function findAdminUser(userId) {
+      return state.adminData && state.adminData.users
+        ? state.adminData.users.find(user => String(user.userId) === String(userId))
+        : null;
+    }
+
+    function showEditUserForm(userId) {
+      const user = findAdminUser(userId);
+      if (!user) return showToast("ไม่พบผู้ใช้งาน", "error");
+      showModal("แก้ไขผู้ใช้งาน", "แก้ไขชื่อและเบอร์โทรศัพท์", `
+        <form onsubmit="saveUserEdit(event, '${jsString(userId)}')" class="space-y-3">
+          <label class="block"><span class="text-sm font-medium">ชื่อ</span>
+            <input id="edit-user-name" value="${escapeHtml(user.name)}" class="mt-2 w-full px-4 py-3 rounded-xl border border-slate-300" required>
+          </label>
+          <label class="block"><span class="text-sm font-medium">เบอร์โทรศัพท์</span>
+            <input id="edit-user-phone" type="tel" value="${escapeHtml(user.phone)}" class="mt-2 w-full px-4 py-3 rounded-xl border border-slate-300" required>
+          </label>
+          <div class="rounded-xl bg-slate-50 p-3 text-xs text-slate-500">Role: ${escapeHtml(user.role)} · User ID: ${escapeHtml(user.userId)}</div>
+          <button class="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold">บันทึกการแก้ไข</button>
+        </form>`);
+    }
+
+    async function saveUserEdit(event, userId) {
+      event.preventDefault();
+      try {
+        await api("updateUser", { data: {
+          userId, name: valueOf("edit-user-name"), phone: valueOf("edit-user-phone")
+        }});
+        closeModal();
+        showToast("แก้ไขผู้ใช้งานสำเร็จ", "success");
+        openAdminPanel();
+      } catch (error) { showToast(error.message, "error"); }
+    }
+
+    function showResetPinForm(userId) {
+      const user = findAdminUser(userId);
+      if (!user) return showToast("ไม่พบผู้ใช้งาน", "error");
+      showModal("ตั้ง PIN ใหม่", `บัญชี ${user.name}`, `
+        <form onsubmit="saveNewPin(event, '${jsString(userId)}')" class="space-y-3">
+          ${inputField("new-user-pin", "PIN ใหม่อย่างน้อย 4 หลัก", "password")}
+          ${inputField("confirm-user-pin", "ยืนยัน PIN ใหม่", "password")}
+          <p class="text-xs text-amber-700 bg-amber-50 rounded-xl p-3">หลังเปลี่ยน PIN ระบบจะยกเลิก Session และการผูกอุปกรณ์เดิมของบัญชีนี้</p>
+          <button class="w-full py-3 rounded-xl bg-violet-600 text-white font-semibold">ตั้ง PIN ใหม่</button>
+        </form>`);
+    }
+
+    async function saveNewPin(event, userId) {
+      event.preventDefault();
+      const pin = valueOf("new-user-pin");
+      if (pin !== valueOf("confirm-user-pin")) {
+        return showToast("PIN และการยืนยัน PIN ไม่ตรงกัน", "error");
+      }
+      try {
+        await api("resetUserPin", { data: { userId, pin }});
+        closeModal();
+        showToast("ตั้ง PIN ใหม่แล้ว", "success");
+        openAdminPanel();
+      } catch (error) { showToast(error.message, "error"); }
+    }
+
+    async function toggleUserStatus(userId, status) {
+      const text = status === "inactive" ? "ระงับบัญชีนี้" : "เปิดใช้งานบัญชีนี้";
+      if (!confirm("ยืนยัน" + text + "?")) return;
+      try {
+        await api("setUserStatus", { data: { userId, status }});
+        showToast(status === "inactive" ? "ระงับบัญชีแล้ว" : "เปิดใช้งานบัญชีแล้ว", "success");
+        openAdminPanel();
+      } catch (error) { showToast(error.message, "error"); }
+    }
+
+    async function deleteUserAccount(userId) {
+      if (!confirm("ยืนยันลบบัญชีนี้? บัญชีที่มีประวัติงานจะไม่สามารถลบได้")) return;
+      try {
+        await api("deleteUser", { userId });
+        showToast("ลบบัญชีแล้ว", "success");
+        openAdminPanel();
       } catch (error) { showToast(error.message, "error"); }
     }
 
